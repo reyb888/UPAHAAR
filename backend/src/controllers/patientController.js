@@ -1,6 +1,6 @@
 import { db } from '../db/sqliteSetup.js';
 import { v4 as uuidv4 } from 'uuid';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateGeminiContent } from '../utils/gemini.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -76,10 +76,7 @@ export const uploadPrescription = async (req, res) => {
     let rawOcrText = null;
 
     try {
-        if (process.env.GEMINI_API_KEY) {
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            
+        if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
             if (mimeType.startsWith('image/') || mimeType === 'application/pdf') {
                 const prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
 You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
@@ -94,7 +91,7 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     }
                 };
                 
-                const result = await model.generateContent([prompt, filePart]);
+                const result = await generateGeminiContent([prompt, filePart], { model: "gemini-2.5-flash" });
                 const response = await result.response;
                 let text = response.text().trim();
                 
