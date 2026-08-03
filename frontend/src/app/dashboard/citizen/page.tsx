@@ -28,18 +28,28 @@ export default function CitizenDashboard() {
         const timelineData = data.timeline || [];
         setTimeline(timelineData);
 
-        // Find the most recent prescription with parsed medicines
-        const latestWithMeds = timelineData.find((t: any) => t.medicines && t.medicines !== "[]" && t.medicines !== "null");
-        if (latestWithMeds) {
-           try { 
-             setActiveMedicines(JSON.parse(latestWithMeds.medicines)); 
-             setTakenMeds([]); // Reset taken state for new prescriptions
-           } catch (e) { 
-             setActiveMedicines([]); 
-           }
-        } else {
-           setActiveMedicines([]);
-        }
+        // Combine medicines from all prescriptions
+        const allMedicines: any[] = [];
+        const uniqueMedKeys = new Set<string>();
+        timelineData.forEach((t: any) => {
+          if (t.medicines && t.medicines !== "[]" && t.medicines !== "null") {
+            try {
+              const meds = JSON.parse(t.medicines);
+              if (Array.isArray(meds)) {
+                meds.forEach((med: any) => {
+                  const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                  if (!uniqueMedKeys.has(medKey)) {
+                    uniqueMedKeys.add(medKey);
+                    allMedicines.push(med);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error("Failed to parse medicines:", e);
+            }
+          }
+        });
+        setActiveMedicines(allMedicines);
       }
     } catch (err) {
       console.error('Failed to fetch timeline:', err);

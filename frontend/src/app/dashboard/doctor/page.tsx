@@ -162,14 +162,29 @@ export default function DoctorDashboard() {
       if (response.ok) {
         setPatientData(data);
         
-        // Extract Active Medicines from the latest timeline item
+        // Combine medicines from all prescriptions
         const timelineData = data.timeline || [];
-        const latestWithMeds = timelineData.find((t: any) => t.medicines && t.medicines !== "[]" && t.medicines !== "null");
-        if (latestWithMeds) {
-           try { setActiveMedicines(JSON.parse(latestWithMeds.medicines)); } catch (e) { setActiveMedicines([]); }
-        } else {
-           setActiveMedicines([]);
-        }
+        const allMedicines: any[] = [];
+        const uniqueMedKeys = new Set<string>();
+        timelineData.forEach((t: any) => {
+          if (t.medicines && t.medicines !== "[]" && t.medicines !== "null") {
+            try {
+              const meds = JSON.parse(t.medicines);
+              if (Array.isArray(meds)) {
+                meds.forEach((med: any) => {
+                  const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                  if (!uniqueMedKeys.has(medKey)) {
+                    uniqueMedKeys.add(medKey);
+                    allMedicines.push(med);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error("Failed to parse medicines:", e);
+            }
+          }
+        });
+        setActiveMedicines(allMedicines);
 
       } else {
         setError(data.message || "Failed to fetch patient data.");
