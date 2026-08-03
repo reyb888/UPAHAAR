@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
 import Link from 'next/link';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
@@ -15,6 +15,11 @@ export default function CitizenDashboard() {
   const [takenMeds, setTakenMeds] = useState<number[]>([]);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Confirmation Modal State
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [medicineToRemove, setMedicineToRemove] = useState<any>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const fetchTimeline = async () => {
     const token = localStorage.getItem('upahaar_token');
@@ -40,7 +45,7 @@ export default function CitizenDashboard() {
                   const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
                   if (!uniqueMedKeys.has(medKey)) {
                     uniqueMedKeys.add(medKey);
-                    allMedicines.push(med);
+                    allMedicines.push({ ...med, prescriptionId: t.id });
                   }
                 });
               }
@@ -107,6 +112,35 @@ export default function CitizenDashboard() {
       }
     } catch (err) {
       console.error(`Failed to ${action} notification:`, err);
+    }
+  };
+
+  const confirmRemoveMedicine = async () => {
+    if (!medicineToRemove) return;
+    setIsRemoving(true);
+    const token = localStorage.getItem('upahaar_token');
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/prescriptions/${medicineToRemove.prescriptionId}/remove-medicine`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: medicineToRemove.name })
+      });
+      if (response.ok) {
+        setShowRemoveModal(false);
+        setMedicineToRemove(null);
+        fetchTimeline(); // Refresh timeline
+      } else {
+        const data = await response.json();
+        alert(data.message || "Failed to remove medicine.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to server.");
+    } finally {
+      setIsRemoving(false);
     }
   };
 
@@ -233,16 +267,28 @@ export default function CitizenDashboard() {
                           <h3 className={`font-bold text-lg ${takenMeds.includes(idx) ? 'line-through text-gray-300' : ''}`}>{med.name}</h3>
                           <p className="text-blue-100 text-sm">{med.frequency} • {med.duration}</p>
                         </div>
-                        <button 
-                          onClick={() => setTakenMeds(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${
-                            takenMeds.includes(idx) 
-                              ? 'bg-green-500 text-white' 
-                              : 'bg-white text-medical-blue hover:bg-blue-50'
-                          }`}
-                        >
-                          <CheckCircle2 size={18} /> {takenMeds.includes(idx) ? 'Taken' : 'Take'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setTakenMeds(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${
+                              takenMeds.includes(idx) 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-white text-medical-blue hover:bg-blue-50'
+                            }`}
+                          >
+                            <CheckCircle2 size={18} /> {takenMeds.includes(idx) ? 'Taken' : 'Take'}
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setMedicineToRemove(med);
+                              setShowRemoveModal(true);
+                            }}
+                            className="p-2 bg-red-500/20 hover:bg-red-500/40 hover:scale-105 text-white rounded-lg transition-all"
+                            title="Remove Medication"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -353,6 +399,44 @@ export default function CitizenDashboard() {
           </div>
         </div>
       </main>
+      {/* Remove Medication Confirmation Modal */}
+      {showRemoveModal && medicineToRemove && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-gray-800"
+          >
+            <h3 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Pill className="text-red-500 animate-pulse" /> Remove Medication?
+            </h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              Are you sure you want to remove <strong>{medicineToRemove.name}</strong> from your daily medication reminders?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => {
+                  setShowRemoveModal(false);
+                  setMedicineToRemove(null);
+                }}
+                disabled={isRemoving}
+                className="px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-bold transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmRemoveMedicine}
+                disabled={isRemoving}
+                className="px-5 py-2 bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400 rounded-xl font-bold transition-colors text-sm flex items-center gap-2 shadow-lg shadow-red-600/20"
+              >
+                {isRemoving ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : 'Remove'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

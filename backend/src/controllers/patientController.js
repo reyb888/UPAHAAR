@@ -164,6 +164,38 @@ export const deletePrescription = (req, res) => {
     });
 };
 
+export const removeMedicineFromPrescription = (req, res) => {
+    const citizenId = req.user.id;
+    const { id } = req.params; // prescriptionId
+    const { name } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ message: 'Medicine name is required' });
+    }
+
+    db.get(`SELECT medicines FROM prescriptions WHERE id = ? AND citizen_id = ?`, [id, citizenId], (err, row) => {
+        if (err || !row) return res.status(404).json({ message: 'Prescription not found' });
+
+        try {
+            let medicines = JSON.parse(row.medicines || '[]');
+            if (!Array.isArray(medicines)) medicines = [];
+
+            // Filter out the medicine with the matching name
+            const updatedMedicines = medicines.filter(m => m.name.trim().toLowerCase() !== name.trim().toLowerCase());
+
+            db.run(`UPDATE prescriptions SET medicines = ? WHERE id = ? AND citizen_id = ?`,
+                [JSON.stringify(updatedMedicines), id, citizenId],
+                function(err) {
+                    if (err) return res.status(500).json({ message: 'Failed to remove medicine' });
+                    res.json({ message: 'Medicine removed successfully', medicines: updatedMedicines });
+                }
+            );
+        } catch (e) {
+            return res.status(500).json({ message: 'Failed to parse medicines database field' });
+        }
+    });
+};
+
 export const getNearbyPharmacies = async (req, res) => {
     const { lat, lng } = req.query;
     if (!lat || !lng) {
