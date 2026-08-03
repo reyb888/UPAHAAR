@@ -24,7 +24,8 @@ export const updateProfile = (req, res) => {
         dob, gender, blood_group, height_cm, weight_kg, chest_size_cm, 
         vision_left, vision_right, hearing_status, allergies, 
         family_history, mental_health, respiratory_disorders, 
-        heart_problems, nervous_disorders, identifying_features 
+        heart_problems, nervous_disorders, identifying_features,
+        emergency_contacts
     } = req.body;
 
     const fields = [
@@ -36,7 +37,9 @@ export const updateProfile = (req, res) => {
         respiratory_disorders ? JSON.stringify(respiratory_disorders) : null,
         heart_problems ? JSON.stringify(heart_problems) : null,
         nervous_disorders ? JSON.stringify(nervous_disorders) : null,
-        identifying_features, userId
+        identifying_features,
+        emergency_contacts ? JSON.stringify(emergency_contacts) : null,
+        userId
     ];
 
     db.run(
@@ -44,7 +47,8 @@ export const updateProfile = (req, res) => {
             dob = COALESCE(?, dob), gender = COALESCE(?, gender), blood_group = ?, height_cm = ?, weight_kg = ?, chest_size_cm = ?, 
             vision_left = ?, vision_right = ?, hearing_status = ?, allergies = ?, 
             family_history = ?, mental_health = ?, respiratory_disorders = ?, 
-            heart_problems = ?, nervous_disorders = ?, identifying_features = ?
+            heart_problems = ?, nervous_disorders = ?, identifying_features = ?,
+            emergency_contacts = ?
          WHERE user_id = ?`,
         fields,
         function (err) {

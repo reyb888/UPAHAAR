@@ -30,6 +30,10 @@ db.run("ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT", (err) => {
     if (err) console.log("Migration skipped (raw_ocr_text column may already exist):", err.message);
     else console.log("Migration successful: added raw_ocr_text column to prescriptions.");
 });
+db.run("ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT", (err) => {
+    if (err) console.log("Migration skipped (emergency_contacts column may already exist):", err.message);
+    else console.log("Migration successful: added emergency_contacts column to medical_profiles.");
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
