@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
 import Link from 'next/link';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
 
 export default function CitizenDashboard() {
+  const [profile, setProfile] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -15,6 +16,39 @@ export default function CitizenDashboard() {
   const [takenMeds, setTakenMeds] = useState<number[]>([]);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Document Modal State
+  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
+
+  // Confirmation Modal State
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [medicineToRemove, setMedicineToRemove] = useState<any>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const getFileUrl = (url?: string) => {
+    if (!url) return '#';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const fetchProfile = async () => {
+    const token = localStorage.getItem('upahaar_token');
+    if (!token) return;
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile', err);
+    }
+  };
 
   const fetchTimeline = async () => {
     const token = localStorage.getItem('upahaar_token');
@@ -40,7 +74,7 @@ export default function CitizenDashboard() {
                   const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
                   if (!uniqueMedKeys.has(medKey)) {
                     uniqueMedKeys.add(medKey);
-                    allMedicines.push(med);
+                    allMedicines.push({ ...med, prescriptionId: t.id });
                   }
                 });
               }
@@ -110,7 +144,37 @@ export default function CitizenDashboard() {
     }
   };
 
+  const confirmRemoveMedicine = async () => {
+    if (!medicineToRemove) return;
+    setIsRemoving(true);
+    const token = localStorage.getItem('upahaar_token');
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/prescriptions/${medicineToRemove.prescriptionId}/remove-medicine`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: medicineToRemove.name })
+      });
+      if (response.ok) {
+        setShowRemoveModal(false);
+        setMedicineToRemove(null);
+        fetchTimeline(); // Refresh timeline
+      } else {
+        const data = await response.json();
+        alert(data.message || "Failed to remove medicine.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to server.");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   useEffect(() => {
+    fetchProfile();
     fetchTimeline();
     fetchNotifications();
   }, []);
@@ -177,9 +241,22 @@ export default function CitizenDashboard() {
         <div className="max-w-5xl mx-auto space-y-8">
           
           <header className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-visible z-50">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Welcome back, Citizen</h1>
-              <p className="text-gray-500">Manage your medical records securely.</p>
+            <div className="flex items-center gap-4">
+              {profile?.face_photo_url && profile.face_photo_url !== 'dummy-url-for-now' ? (
+                <img 
+                  src={getFileUrl(profile.face_photo_url)} 
+                  alt="Profile" 
+                  className="w-14 h-14 rounded-full object-cover border-2 border-medical-blue shadow-md"
+                />
+              ) : (
+                <div className="w-14 h-14 bg-medical-blue/10 text-medical-blue rounded-full flex items-center justify-center font-bold text-xl border border-medical-blue/20">
+                  {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'C'}
+                </div>
+              )}
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Welcome back, {profile?.full_name || 'Citizen'}</h1>
+                <p className="text-gray-500">Manage your medical records securely.</p>
+              </div>
             </div>
             <div className="bg-medical-dark p-2 rounded-xl shadow-lg border border-gray-100">
                <GoogleTranslate />
@@ -233,16 +310,28 @@ export default function CitizenDashboard() {
                           <h3 className={`font-bold text-lg ${takenMeds.includes(idx) ? 'line-through text-gray-300' : ''}`}>{med.name}</h3>
                           <p className="text-blue-100 text-sm">{med.frequency} • {med.duration}</p>
                         </div>
-                        <button 
-                          onClick={() => setTakenMeds(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${
-                            takenMeds.includes(idx) 
-                              ? 'bg-green-500 text-white' 
-                              : 'bg-white text-medical-blue hover:bg-blue-50'
-                          }`}
-                        >
-                          <CheckCircle2 size={18} /> {takenMeds.includes(idx) ? 'Taken' : 'Take'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setTakenMeds(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${
+                              takenMeds.includes(idx) 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-white text-medical-blue hover:bg-blue-50'
+                            }`}
+                          >
+                            <CheckCircle2 size={18} /> {takenMeds.includes(idx) ? 'Taken' : 'Take'}
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setMedicineToRemove(med);
+                              setShowRemoveModal(true);
+                            }}
+                            className="p-2 bg-red-500/20 hover:bg-red-500/40 hover:scale-105 text-white rounded-lg transition-all"
+                            title="Remove Medication"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -277,7 +366,12 @@ export default function CitizenDashboard() {
                         </button>
                       </div>
                       <div className="flex justify-between items-center mb-3">
-                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${item.file_url}`} target="_blank" rel="noreferrer" className="text-sm text-medical-blue hover:underline">View Original Document</a>
+                        <button 
+                          onClick={() => { setSelectedDoc(item); setShowDocModal(true); }} 
+                          className="text-sm font-semibold text-medical-blue hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileText size={16} /> View Original Document
+                        </button>
                         {item.raw_ocr_text && (
                           <div className="flex bg-gray-100 rounded-lg p-1">
                             <button 
@@ -353,6 +447,98 @@ export default function CitizenDashboard() {
           </div>
         </div>
       </main>
+      {/* Remove Medication Confirmation Modal */}
+      {showRemoveModal && medicineToRemove && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gray-100 text-gray-800"
+          >
+            <h3 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Pill className="text-red-500 animate-pulse" /> Remove Medication?
+            </h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              Are you sure you want to remove <strong>{medicineToRemove.name}</strong> from your daily medication reminders?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => {
+                  setShowRemoveModal(false);
+                  setMedicineToRemove(null);
+                }}
+                disabled={isRemoving}
+                className="px-4 py-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-bold transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmRemoveMedicine}
+                disabled={isRemoving}
+                className="px-5 py-2 bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400 rounded-xl font-bold transition-colors text-sm flex items-center gap-2 shadow-lg shadow-red-600/20"
+              >
+                {isRemoving ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : 'Remove'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Original Document Lightbox Modal */}
+      {showDocModal && selectedDoc && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 text-gray-800"
+          >
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Original Prescription Document</h3>
+                <p className="text-xs text-gray-500">{new Date(selectedDoc.created_at).toLocaleString()}</p>
+              </div>
+              <button 
+                onClick={() => { setShowDocModal(false); setSelectedDoc(null); }}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-900 rounded-2xl p-4 flex items-center justify-center min-h-[350px]">
+              {selectedDoc.file_url?.startsWith('data:application/pdf') ? (
+                <iframe src={getFileUrl(selectedDoc.file_url)} className="w-full h-[500px] rounded-xl" />
+              ) : (
+                <img 
+                  src={getFileUrl(selectedDoc.file_url)} 
+                  alt="Prescription Document" 
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" 
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
+              <a 
+                href={getFileUrl(selectedDoc.file_url)} 
+                download={`prescription_${selectedDoc.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-2.5 bg-medical-blue text-white rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                Open / Download Original
+              </a>
+              <button 
+                onClick={() => { setShowDocModal(false); setSelectedDoc(null); }}
+                className="px-5 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-bold text-sm transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

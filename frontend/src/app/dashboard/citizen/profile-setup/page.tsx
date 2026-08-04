@@ -22,9 +22,18 @@ export default function ProfileSetup() {
   const [respiratory, setRespiratory] = useState({ asthma: false, copd: false, other: '' });
   const [nervousSystem, setNervousSystem] = useState({ epilepsy: false, parkinsons: false, other: '' });
   const [heartProblem, setHeartProblem] = useState({ hypertension: false, arrhythmia: false, other: '' });
-  
-  // Family History (Simple implementation)
   const [familyHistory, setFamilyHistory] = useState({ relation: 'None', disease: '' });
+  
+  const [facePhoto, setFacePhoto] = useState<File | null>(null);
+
+  const getBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +45,16 @@ export default function ProfileSetup() {
       return;
     }
 
-    const payload = {
+    let face_photo_url: string | null = null;
+    if (facePhoto) {
+      try {
+        face_photo_url = await getBase64(facePhoto);
+      } catch (err) {
+        console.error("Failed to convert image:", err);
+      }
+    }
+
+    const payload: any = {
       blood_group: bloodGroup,
       height_cm: parseFloat(height) || null,
       weight_kg: parseFloat(weight) || null,
@@ -51,6 +69,10 @@ export default function ProfileSetup() {
       heart_problems: heartProblem,
       identifying_features: identifyingMarks + (otherDefects ? ` | Other Defects: ${otherDefects}` : '')
     };
+
+    if (face_photo_url) {
+      payload.face_photo_url = face_photo_url;
+    }
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/profile`, {
@@ -107,6 +129,11 @@ export default function ProfileSetup() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Birth / Identification Mark</label>
                   <input type="text" placeholder="e.g. Scar on left cheek, Mole on right arm" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" onChange={e => setIdentifyingMarks(e.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Update Face Recognition Photo (Emergency Access)</label>
+                  <input type="file" accept="image/*" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50" onChange={e => setFacePhoto(e.target.files?.[0] || null)} />
+                  {facePhoto && <p className="text-xs text-green-600 mt-1 font-medium">Selected: {facePhoto.name}</p>}
                 </div>
               </div>
             </div>

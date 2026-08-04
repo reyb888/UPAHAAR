@@ -18,7 +18,7 @@ export const scanPatientQr = (req, res) => {
         if (revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
 
         // 2. Find the citizen's profile
-        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, m.* 
+        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                 FROM users u 
                 LEFT JOIN medical_profiles m ON u.id = m.user_id 
                 WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'`, 

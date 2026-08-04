@@ -7,7 +7,7 @@ import path from 'path';
 export const getProfile = (req, res) => {
     const userId = req.user.id;
     
-    db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, m.* 
+    db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
             FROM users u 
             JOIN medical_profiles m ON u.id = m.user_id 
             WHERE u.id = ?`, [userId], (err, profile) => {
@@ -24,7 +24,8 @@ export const updateProfile = (req, res) => {
         dob, gender, blood_group, height_cm, weight_kg, chest_size_cm, 
         vision_left, vision_right, hearing_status, allergies, 
         family_history, mental_health, respiratory_disorders, 
-        heart_problems, nervous_disorders, identifying_features 
+        heart_problems, nervous_disorders, identifying_features,
+        face_photo_url
     } = req.body;
 
     const fields = [
@@ -38,6 +39,12 @@ export const updateProfile = (req, res) => {
         nervous_disorders ? JSON.stringify(nervous_disorders) : null,
         identifying_features, userId
     ];
+
+    if (face_photo_url) {
+        db.run(`UPDATE users SET face_photo_url = ? WHERE id = ?`, [face_photo_url, userId], (err) => {
+            if (err) console.error("Error updating user face photo:", err.message);
+        });
+    }
 
     db.run(
         `UPDATE medical_profiles SET 
@@ -161,6 +168,38 @@ export const deletePrescription = (req, res) => {
             if (err) return res.status(500).json({ message: 'Failed to delete record' });
             res.json({ message: 'Prescription deleted successfully' });
         });
+    });
+};
+
+export const removeMedicineFromPrescription = (req, res) => {
+    const citizenId = req.user.id;
+    const { id } = req.params; // prescriptionId
+    const { name } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ message: 'Medicine name is required' });
+    }
+
+    db.get(`SELECT medicines FROM prescriptions WHERE id = ? AND citizen_id = ?`, [id, citizenId], (err, row) => {
+        if (err || !row) return res.status(404).json({ message: 'Prescription not found' });
+
+        try {
+            let medicines = JSON.parse(row.medicines || '[]');
+            if (!Array.isArray(medicines)) medicines = [];
+
+            // Filter out the medicine with the matching name
+            const updatedMedicines = medicines.filter(m => m.name.trim().toLowerCase() !== name.trim().toLowerCase());
+
+            db.run(`UPDATE prescriptions SET medicines = ? WHERE id = ? AND citizen_id = ?`,
+                [JSON.stringify(updatedMedicines), id, citizenId],
+                function(err) {
+                    if (err) return res.status(500).json({ message: 'Failed to remove medicine' });
+                    res.json({ message: 'Medicine removed successfully', medicines: updatedMedicines });
+                }
+            );
+        } catch (e) {
+            return res.status(500).json({ message: 'Failed to parse medicines database field' });
+        }
     });
 };
 

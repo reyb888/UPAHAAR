@@ -15,10 +15,24 @@ export default function CitizenRegister() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  const getBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      let face_photo_url: string | null = null;
+      if (formData.face_photo) {
+        face_photo_url = await getBase64(formData.face_photo);
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,7 +43,7 @@ export default function CitizenRegister() {
           phone: formData.phone,
           password: formData.password,
           dob: formData.dob,
-          face_photo_url: 'dummy-url-for-now'
+          face_photo_url
         })
       });
 
