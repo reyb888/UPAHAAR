@@ -22,6 +22,18 @@ export default function DoctorDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
 
+  // Document Modal State
+  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
+
+  const getFileUrl = (url?: string) => {
+    if (!url) return '#';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   // Scanner State
   const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -347,9 +359,17 @@ export default function DoctorDashboard() {
                     
                     {/* Patient Overview */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-6 items-start">
-                       <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                          <User size={40} className="text-medical-blue" />
-                       </div>
+                       {patientData.patient.face_photo_url && patientData.patient.face_photo_url !== 'dummy-url-for-now' ? (
+                          <img 
+                            src={getFileUrl(patientData.patient.face_photo_url)} 
+                            alt="Patient Face Photo" 
+                            className="w-20 h-20 rounded-full object-cover border-2 border-medical-blue shadow-md shrink-0" 
+                          />
+                       ) : (
+                          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                             <User size={40} className="text-medical-blue" />
+                          </div>
+                       )}
                        <div className="flex-1 min-w-[200px]">
                           <h2 className="text-2xl font-bold text-gray-800">{patientData.patient.full_name}</h2>
                           <p className="text-gray-500 font-mono tracking-widest">{patientData.patient.upahaar_id}</p>
@@ -441,7 +461,12 @@ export default function DoctorDashboard() {
                                     <span className="text-xs font-bold text-gray-500">{new Date(record.created_at).toLocaleDateString()}</span>
                                   </div>
                                   <div className="flex justify-between items-center mb-3">
-                                    <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${record.file_url}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-medical-blue hover:underline">View Original File</a>
+                                    <button 
+                                      onClick={() => { setSelectedDoc(record); setShowDocModal(true); }}
+                                      className="text-xs font-bold text-medical-blue hover:underline cursor-pointer"
+                                    >
+                                      View Original File
+                                    </button>
                                     {record.raw_ocr_text && (
                                       <div className="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
                                         <button 
@@ -481,6 +506,60 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Document Lightbox Modal for Doctor */}
+      {showDocModal && selectedDoc && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-100 text-gray-800"
+          >
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Original Prescription Document</h3>
+                <p className="text-xs text-gray-500">{new Date(selectedDoc.created_at).toLocaleString()}</p>
+              </div>
+              <button 
+                onClick={() => { setShowDocModal(false); setSelectedDoc(null); }}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-900 rounded-2xl p-4 flex items-center justify-center min-h-[350px]">
+              {selectedDoc.file_url?.startsWith('data:application/pdf') ? (
+                <iframe src={getFileUrl(selectedDoc.file_url)} className="w-full h-[500px] rounded-xl" />
+              ) : (
+                <img 
+                  src={getFileUrl(selectedDoc.file_url)} 
+                  alt="Prescription Document" 
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg" 
+                />
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-100">
+              <a 
+                href={getFileUrl(selectedDoc.file_url)} 
+                download={`prescription_${selectedDoc.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-2.5 bg-medical-blue text-white rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                Open / Download Original
+              </a>
+              <button 
+                onClick={() => { setShowDocModal(false); setSelectedDoc(null); }}
+                className="px-5 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-bold text-sm transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
