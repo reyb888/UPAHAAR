@@ -481,6 +481,7 @@ export default function CitizenDashboard() {
                 ) : 'Remove'}
               </button>
             </div>
+          </motion.div>
         </div>
       )}
 
