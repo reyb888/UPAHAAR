@@ -60,11 +60,11 @@ export default function CitizenLogin() {
             className="space-y-6"
           >
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">UPAHAAR ID</label>
+              <label className="text-sm font-semibold text-gray-700">UPAHAAR ID or Email</label>
               <input 
                 type="text" required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50/50"
-                placeholder="UPHR-1234567890"
+                placeholder="UPHR-1234567890 or you@email.com"
                 onChange={e => setCredentials({...credentials, upahaar_id: e.target.value})}
               />
             </div>
