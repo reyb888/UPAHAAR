@@ -50,7 +50,11 @@ export default function CitizenRegister() {
       const data = await response.json();
       
       if (response.ok) {
-        alert(`Registration successful! Your UPAHAAR ID is: ${data.upahaar_id}`);
+        if (data.email_confirmation_required) {
+          alert(`Registration successful! Your UPAHAAR ID is: ${data.upahaar_id}\n\nPlease check your email to verify your account before logging in.`);
+        } else {
+          alert(`Registration successful! Your UPAHAAR ID is: ${data.upahaar_id}`);
+        }
         window.location.href = '/auth/citizen/login';
       } else {
         alert(`Error: ${data.message}`);
