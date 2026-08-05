@@ -16,7 +16,6 @@ export default function CitizenDashboard() {
   const [takenMeds, setTakenMeds] = useState<number[]>([]);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
-
   // Document Modal State
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
@@ -364,7 +363,6 @@ export default function CitizenDashboard() {
                         >
                           <Trash2 size={16} />
                         </button>
-                      </div>
                       <div className="flex justify-between items-center mb-3">
                         <button 
                           onClick={() => { setSelectedDoc(item); setShowDocModal(true); }} 

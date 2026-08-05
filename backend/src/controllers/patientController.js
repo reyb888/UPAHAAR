@@ -30,16 +30,18 @@ export const updateProfile = (req, res) => {
     } = req.body;
 
     const fields = [
-        dob, gender, blood_group, height_cm, weight_kg, chest_size_cm,
-        vision_left, vision_right, hearing_status, 
-        allergies ? JSON.stringify(allergies) : null,
-        family_history ? JSON.stringify(family_history) : null,
-        mental_health ? JSON.stringify(mental_health) : null,
-        respiratory_disorders ? JSON.stringify(respiratory_disorders) : null,
-        heart_problems ? JSON.stringify(heart_problems) : null,
-        nervous_disorders ? JSON.stringify(nervous_disorders) : null,
-        identifying_features,
-        emergency_contacts ? JSON.stringify(emergency_contacts) : null,
+        dob || null, gender || null, blood_group || null, 
+        height_cm != null ? height_cm : null, weight_kg != null ? weight_kg : null, chest_size_cm != null ? chest_size_cm : null,
+        vision_left || null, vision_right || null, 
+        hearing_status ? (typeof hearing_status === 'string' ? hearing_status : JSON.stringify(hearing_status)) : null, 
+        allergies ? (typeof allergies === 'string' ? allergies : JSON.stringify(allergies)) : null,
+        family_history ? (typeof family_history === 'string' ? family_history : JSON.stringify(family_history)) : null,
+        mental_health ? (typeof mental_health === 'string' ? mental_health : JSON.stringify(mental_health)) : null,
+        respiratory_disorders ? (typeof respiratory_disorders === 'string' ? respiratory_disorders : JSON.stringify(respiratory_disorders)) : null,
+        heart_problems ? (typeof heart_problems === 'string' ? heart_problems : JSON.stringify(heart_problems)) : null,
+        nervous_disorders ? (typeof nervous_disorders === 'string' ? nervous_disorders : JSON.stringify(nervous_disorders)) : null,
+        identifying_features || null,
+        emergency_contacts ? (typeof emergency_contacts === 'string' ? emergency_contacts : JSON.stringify(emergency_contacts)) : null,
         userId
     ];
 
@@ -51,11 +53,16 @@ export const updateProfile = (req, res) => {
 
     db.run(
         `UPDATE medical_profiles SET 
-            dob = COALESCE(?, dob), gender = COALESCE(?, gender), blood_group = ?, height_cm = ?, weight_kg = ?, chest_size_cm = ?, 
-            vision_left = ?, vision_right = ?, hearing_status = ?, allergies = ?, 
-            family_history = ?, mental_health = ?, respiratory_disorders = ?, 
-            heart_problems = ?, nervous_disorders = ?, identifying_features = ?,
-            emergency_contacts = ?
+            dob = COALESCE(?, dob), gender = COALESCE(?, gender), 
+            blood_group = COALESCE(?, blood_group), height_cm = COALESCE(?, height_cm), 
+            weight_kg = COALESCE(?, weight_kg), chest_size_cm = COALESCE(?, chest_size_cm), 
+            vision_left = COALESCE(?, vision_left), vision_right = COALESCE(?, vision_right), 
+            hearing_status = COALESCE(?, hearing_status), allergies = COALESCE(?, allergies), 
+            family_history = COALESCE(?, family_history), mental_health = COALESCE(?, mental_health), 
+            respiratory_disorders = COALESCE(?, respiratory_disorders), 
+            heart_problems = COALESCE(?, heart_problems), nervous_disorders = COALESCE(?, nervous_disorders), 
+            identifying_features = COALESCE(?, identifying_features),
+            emergency_contacts = COALESCE(?, emergency_contacts)
          WHERE user_id = ?`,
         fields,
         function (err) {
@@ -235,34 +242,75 @@ export const getNearbyPharmacies = async (req, res) => {
             }
         };
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Goog-Api-Key': apiKey,
-                'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.regularOpeningHours.openNow'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        let response;
+        let data;
+        let fetchSuccessful = false;
+        let mappedPharmacies = [];
 
-        const data = await response.json();
+        try {
+            console.log('Attempting to fetch pharmacies via Places API (New)...');
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.regularOpeningHours.openNow'
+                },
+                body: JSON.stringify(requestBody)
+            });
 
-        if (!response.ok) {
-            console.error('Google Maps API Error:', data);
-            return res.status(500).json({ message: 'Failed to fetch from Google Maps' });
+            data = await response.json();
+
+            if (response.ok) {
+                mappedPharmacies = (data.places || []).map(place => ({
+                    place_id: place.id,
+                    name: place.displayName?.text || 'Unknown Pharmacy',
+                    vicinity: place.formattedAddress || '',
+                    rating: place.rating || null,
+                    user_ratings_total: place.userRatingCount || 0,
+                    opening_hours: place.regularOpeningHours ? { open_now: place.regularOpeningHours.openNow } : undefined
+                }));
+                fetchSuccessful = true;
+            } else {
+                console.warn('Places API (New) returned error status:', response.status, data);
+            }
+        } catch (newApiError) {
+            console.warn('Places API (New) fetch threw error:', newApiError.message || newApiError);
         }
 
-        // Map New API response to match what the frontend expects
-        const mappedPharmacies = (data.places || []).map(place => ({
-            place_id: place.id,
-            name: place.displayName?.text || 'Unknown Pharmacy',
-            vicinity: place.formattedAddress || '',
-            rating: place.rating || null,
-            user_ratings_total: place.userRatingCount || 0,
-            opening_hours: place.regularOpeningHours ? { open_now: place.regularOpeningHours.openNow } : undefined
-        }));
+        // Fallback to Classic Places API if New API failed
+        if (!fetchSuccessful) {
+            console.log('Falling back to Classic Places API (nearbysearch)...');
+            const classicUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=pharmacy&key=${apiKey}`;
+            
+            try {
+                const classicResponse = await fetch(classicUrl);
+                const classicData = await classicResponse.json();
 
-        res.json({ pharmacies: mappedPharmacies });
+                if (classicResponse.ok && (classicData.status === 'OK' || classicData.status === 'ZERO_RESULTS')) {
+                    mappedPharmacies = (classicData.results || []).map(place => ({
+                        place_id: place.place_id,
+                        name: place.name || 'Unknown Pharmacy',
+                        vicinity: place.vicinity || '',
+                        rating: place.rating || null,
+                        user_ratings_total: place.user_ratings_total || 0,
+                        opening_hours: place.opening_hours ? { open_now: place.opening_hours.open_now } : undefined
+                    }));
+                    fetchSuccessful = true;
+                } else {
+                    console.error('Classic Places API returned error status or invalid state. Status:', classicData.status, 'Error Message:', classicData.error_message);
+                }
+            } catch (classicApiError) {
+                console.error('Classic Places API fetch threw error:', classicApiError.message || classicApiError);
+            }
+        }
+
+        if (fetchSuccessful) {
+            return res.json({ pharmacies: mappedPharmacies });
+        }
+
+        return res.status(500).json({ message: 'Failed to fetch from Google Maps (both Places API New and Classic failed)' });
+
     } catch (error) {
         console.error('Error fetching pharmacies:', error);
         res.status(500).json({ message: 'Internal server error' });

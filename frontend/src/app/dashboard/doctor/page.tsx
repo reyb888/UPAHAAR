@@ -34,6 +34,40 @@ export default function DoctorDashboard() {
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
+  const parseAllergies = (allergiesData: any) => {
+    if (!allergiesData) return 'None reported';
+    try {
+      const parsed = typeof allergiesData === 'string' ? JSON.parse(allergiesData) : allergiesData;
+      const active = Object.keys(parsed).filter(k => k !== 'other' && parsed[k]);
+      if (parsed.other) active.push(parsed.other);
+      return active.length > 0 ? active.join(', ') : 'None reported';
+    } catch {
+      return 'None reported';
+    }
+  };
+
+  const parseEmergencyContacts = (contactsData: any) => {
+    if (!contactsData) return [];
+    try {
+      const parsed = typeof contactsData === 'string' ? JSON.parse(contactsData) : contactsData;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const parseFamilyHistory = (historyData: any) => {
+    if (!historyData) return [];
+    try {
+      const parsed = typeof historyData === 'string' ? JSON.parse(historyData) : historyData;
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === 'object' && parsed.relation && parsed.relation !== 'None') return [parsed];
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
   // Scanner State
   const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -416,6 +450,24 @@ export default function DoctorDashboard() {
                                 >
                                   <Phone size={14} /> {contact.phone}
                                 </a>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Family Disease History Row */}
+                      {parseFamilyHistory(patientData.patient.family_history).length > 0 && (
+                        <div className="border-t pt-4">
+                          <strong className="block text-xs uppercase tracking-wider text-indigo-700 mb-3">Family Disease History</strong>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {parseFamilyHistory(patientData.patient.family_history).map((fam: any, idx: number) => (
+                              <div key={idx} className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 text-sm">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-bold text-gray-800">{fam.relation}</span>
+                                  <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full font-bold">{fam.disease || 'Unspecified'}</span>
+                                </div>
+                                {fam.notes && <p className="text-xs text-gray-600 italic">{fam.notes}</p>}
                               </div>
                             ))}
                           </div>

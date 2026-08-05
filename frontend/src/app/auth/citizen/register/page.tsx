@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Plus, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CitizenRegister() {
@@ -13,6 +14,12 @@ export default function CitizenRegister() {
     dob: '',
     face_photo: null as File | null,
   });
+
+  const [familyHistory, setFamilyHistory] = useState<Array<{ relation: string; disease: string; notes?: string }>>([
+    { relation: '', disease: '', notes: '' }
+  ]);
+  const [showFamilyHistoryTab, setShowFamilyHistoryTab] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const getBase64 = (file: File): Promise<string> => {
@@ -24,6 +31,28 @@ export default function CitizenRegister() {
     });
   };
 
+  const addFamilyHistory = () => {
+    setFamilyHistory([...familyHistory, { relation: '', disease: '', notes: '' }]);
+  };
+
+  const removeFamilyHistory = (index: number) => {
+    if (familyHistory.length > 1) {
+      setFamilyHistory(familyHistory.filter((_, i) => i !== index));
+    } else {
+      setFamilyHistory([{ relation: '', disease: '', notes: '' }]);
+    }
+  };
+
+  const updateFamilyHistory = (index: number, field: 'relation' | 'disease' | 'notes', value: string) => {
+    const updated = familyHistory.map((item, i) => {
+      if (i === index) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setFamilyHistory(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -32,6 +61,10 @@ export default function CitizenRegister() {
       if (formData.face_photo) {
         face_photo_url = await getBase64(formData.face_photo);
       }
+
+      const cleanedFamilyHistory = familyHistory.filter(
+        item => item.relation.trim() || item.disease.trim() || (item.notes && item.notes.trim())
+      );
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST',
@@ -43,7 +76,8 @@ export default function CitizenRegister() {
           phone: formData.phone,
           password: formData.password,
           dob: formData.dob,
-          face_photo_url
+          face_photo_url,
+          family_history: cleanedFamilyHistory.length > 0 ? cleanedFamilyHistory : null
         })
       });
 
@@ -73,7 +107,7 @@ export default function CitizenRegister() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-2xl bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20"
+        className="w-full max-w-3xl bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20"
       >
         <div className="bg-medical-blue p-8 text-white text-center">
           <h2 className="text-3xl font-bold mb-2">Citizen Registration</h2>
@@ -121,7 +155,7 @@ export default function CitizenRegister() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-semibold text-gray-700">Secure Password</label>
               <input 
                 type="password" required
@@ -130,6 +164,110 @@ export default function CitizenRegister() {
                 onChange={e => setFormData({...formData, password: e.target.value})}
               />
             </div>
+          </div>
+
+          {/* Family Disease History Section Tab */}
+          <div className="border border-blue-100 rounded-2xl bg-blue-50/40 overflow-hidden">
+            <div 
+              onClick={() => setShowFamilyHistoryTab(!showFamilyHistoryTab)}
+              className="p-4 flex items-center justify-between cursor-pointer hover:bg-blue-50/80 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-medical-blue font-bold">
+                <Users size={20} />
+                <span>Add Family Disease History (Optional)</span>
+              </div>
+              <button
+                type="button"
+                className="text-xs bg-white text-medical-blue border border-medical-blue/30 px-3 py-1.5 rounded-lg font-bold hover:bg-medical-blue hover:text-white transition-colors"
+              >
+                {showFamilyHistoryTab ? 'Hide Tab' : '+ Add Family Disease History'}
+              </button>
+            </div>
+
+            {showFamilyHistoryTab && (
+              <div className="p-4 border-t border-blue-100 bg-white space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Record diseases or medical conditions of family members.</p>
+                  <button
+                    type="button"
+                    onClick={addFamilyHistory}
+                    className="flex items-center gap-1 text-xs bg-blue-50 text-medical-blue hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold transition-all border border-blue-100"
+                  >
+                    <Plus size={14} /> Add Row
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
+                        <th className="py-2.5 px-3 w-1/3">Relation</th>
+                        <th className="py-2.5 px-3 w-1/3">Disease / Medical Condition</th>
+                        <th className="py-2.5 px-3">Notes (Optional)</th>
+                        <th className="py-2.5 px-3 w-10 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {familyHistory.map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50/50">
+                          <td className="p-2">
+                            <select
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 outline-none bg-white focus:ring-1 focus:ring-medical-blue text-xs font-medium"
+                              value={item.relation}
+                              onChange={e => updateFamilyHistory(index, 'relation', e.target.value)}
+                            >
+                              <option value="">Select Relation</option>
+                              <option value="Father">Father</option>
+                              <option value="Mother">Mother</option>
+                              <option value="Brother">Brother</option>
+                              <option value="Sister">Sister</option>
+                              <option value="Grandfather">Grandfather</option>
+                              <option value="Grandmother">Grandmother</option>
+                              <option value="Son">Son</option>
+                              <option value="Daughter">Daughter</option>
+                              <option value="Uncle">Uncle</option>
+                              <option value="Aunt">Aunt</option>
+                              <option value="Spouse">Spouse</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              placeholder="e.g. Diabetes, Heart Disease"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 outline-none bg-white focus:ring-1 focus:ring-medical-blue text-xs"
+                              value={item.disease}
+                              onChange={e => updateFamilyHistory(index, 'disease', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              placeholder="e.g. Diagnosed at age 50"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 outline-none bg-white focus:ring-1 focus:ring-medical-blue text-xs"
+                              value={item.notes || ''}
+                              onChange={e => updateFamilyHistory(index, 'notes', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-2 text-center">
+                            {familyHistory.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeFamilyHistory(index)}
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center"
+                                title="Remove Entry"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2 mt-4">
