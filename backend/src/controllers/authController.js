@@ -12,7 +12,7 @@ const generateUpahaarID = () => {
 
 export const registerUser = async (req, res) => {
     try {
-        const { role, full_name, email, phone, password, face_photo_url, dob } = req.body;
+        const { role, full_name, email, phone, password, face_photo_url, dob, family_history } = req.body;
 
         // Basic validation
         if (!role || !full_name || !email || !phone || !password) {
@@ -36,9 +36,10 @@ export const registerUser = async (req, res) => {
                     return res.status(500).json({ message: 'DB Error: ' + err.message });
                 }
                 
-                // Initialize empty medical profile for CITIZEN with DOB if provided
+                // Initialize medical profile for CITIZEN with DOB and optional family_history
                 if (role === 'CITIZEN') {
-                    db.run(`INSERT INTO medical_profiles (user_id, dob) VALUES (?, ?)`, [id, dob || null], (err2) => {
+                    const famHistStr = family_history ? (typeof family_history === 'string' ? family_history : JSON.stringify(family_history)) : null;
+                    db.run(`INSERT INTO medical_profiles (user_id, dob, family_history) VALUES (?, ?, ?)`, [id, dob || null, famHistStr], (err2) => {
                         if (err2) console.error('Error creating medical profile:', err2.message);
                     });
                 }

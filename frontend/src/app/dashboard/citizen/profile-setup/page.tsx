@@ -23,7 +23,9 @@ export default function ProfileSetup() {
   const [respiratory, setRespiratory] = useState({ asthma: false, copd: false, other: '' });
   const [nervousSystem, setNervousSystem] = useState({ epilepsy: false, parkinsons: false, other: '' });
   const [heartProblem, setHeartProblem] = useState({ hypertension: false, arrhythmia: false, other: '' });
-  const [familyHistory, setFamilyHistory] = useState({ relation: 'None', disease: '' });
+  const [familyHistory, setFamilyHistory] = useState<Array<{ relation: string; disease: string; notes?: string }>>([
+    { relation: '', disease: '', notes: '' }
+  ]);
   
   const [facePhoto, setFacePhoto] = useState<File | null>(null);
 
@@ -70,7 +72,14 @@ export default function ProfileSetup() {
             try { setAllergies(JSON.parse(data.allergies)); } catch(e){}
           }
           if (data.family_history) {
-            try { setFamilyHistory(JSON.parse(data.family_history)); } catch(e){}
+            try { 
+              const parsed = typeof data.family_history === 'string' ? JSON.parse(data.family_history) : data.family_history;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setFamilyHistory(parsed);
+              } else if (parsed && typeof parsed === 'object' && parsed.relation && parsed.relation !== 'None') {
+                setFamilyHistory([{ relation: parsed.relation, disease: parsed.disease || '', notes: '' }]);
+              }
+            } catch(e){}
           }
           if (data.mental_health) {
             try { setMentalIllness(JSON.parse(data.mental_health)); } catch(e){}
@@ -99,6 +108,28 @@ export default function ProfileSetup() {
     };
     fetchProfile();
   }, []);
+
+  const addFamilyHistory = () => {
+    setFamilyHistory([...familyHistory, { relation: '', disease: '', notes: '' }]);
+  };
+
+  const removeFamilyHistory = (index: number) => {
+    if (familyHistory.length > 1) {
+      setFamilyHistory(familyHistory.filter((_, i) => i !== index));
+    } else {
+      setFamilyHistory([{ relation: '', disease: '', notes: '' }]);
+    }
+  };
+
+  const updateFamilyHistory = (index: number, field: 'relation' | 'disease' | 'notes', value: string) => {
+    const updated = familyHistory.map((item, i) => {
+      if (i === index) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setFamilyHistory(updated);
+  };
 
   const addEmergencyContact = () => {
     setEmergencyContacts([...emergencyContacts, { name: '', phone: '', relation: '' }]);
@@ -149,7 +180,7 @@ export default function ProfileSetup() {
       vision_right: visionRight,
       hearing_status: JSON.stringify(hearing),
       allergies,
-      family_history: familyHistory,
+      family_history: familyHistory.filter(item => item.relation.trim() || item.disease.trim() || (item.notes && item.notes.trim())),
       mental_health: mentalIllness,
       respiratory_disorders: respiratory,
       nervous_disorders: nervousSystem,
@@ -223,11 +254,6 @@ export default function ProfileSetup() {
                   <input type="file" accept="image/*" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50" onChange={e => setFacePhoto(e.target.files?.[0] || null)} />
                   {facePhoto && <p className="text-xs text-green-600 mt-1 font-medium">Selected: {facePhoto.name}</p>}
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Update Face Recognition Photo (Emergency Access)</label>
-                  <input type="file" accept="image/*" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50" onChange={e => setFacePhoto(e.target.files?.[0] || null)} />
-                  {facePhoto && <p className="text-xs text-green-600 mt-1 font-medium">Selected: {facePhoto.name}</p>}
-                </div>
               </div>
             </div>
 
@@ -259,32 +285,105 @@ export default function ProfileSetup() {
               </div>
             </div>
 
-            {/* Section 3: Allergies & Family History */}
+            {/* Section 3: Allergies */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Allergies & Family History</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Allergies</label>
-                  <div className="space-y-2 mb-3">
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={allergies.peanuts} onChange={e => setAllergies({...allergies, peanuts: e.target.checked})} /> Peanuts</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={allergies.dust} onChange={e => setAllergies({...allergies, dust: e.target.checked})} /> Dust Mites</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={allergies.pollen} onChange={e => setAllergies({...allergies, pollen: e.target.checked})} /> Pollen</label>
-                    <label className="flex items-center gap-2"><input type="checkbox" checked={allergies.penicillin} onChange={e => setAllergies({...allergies, penicillin: e.target.checked})} /> Penicillin</label>
-                  </div>
-                  <input type="text" placeholder="Other allergies..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={allergies.other} onChange={e => setAllergies({...allergies, other: e.target.value})} />
+              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Allergies</h2>
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Known Allergies</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.peanuts} onChange={e => setAllergies({...allergies, peanuts: e.target.checked})} /> Peanuts</label>
+                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.dust} onChange={e => setAllergies({...allergies, dust: e.target.checked})} /> Dust Mites</label>
+                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.pollen} onChange={e => setAllergies({...allergies, pollen: e.target.checked})} /> Pollen</label>
+                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.penicillin} onChange={e => setAllergies({...allergies, penicillin: e.target.checked})} /> Penicillin</label>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Family Disease History</label>
-                  <select className="w-full px-4 py-2 rounded-lg border outline-none mb-3 bg-white" value={familyHistory.relation} onChange={e => setFamilyHistory({...familyHistory, relation: e.target.value})}>
-                    <option value="None">None</option>
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Grandparents">Grandparents</option>
-                  </select>
-                  {familyHistory.relation !== 'None' && (
-                    <input type="text" placeholder="Describe disease (e.g. Diabetes)" className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={familyHistory.disease} onChange={e => setFamilyHistory({...familyHistory, disease: e.target.value})} />
-                  )}
+                <input type="text" placeholder="Other allergies (e.g. Latex, Shellfish)..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm" value={allergies.other} onChange={e => setAllergies({...allergies, other: e.target.value})} />
+              </div>
+            </div>
+
+            {/* Section 4: Family Disease History */}
+            <div>
+              <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Family Disease History</h2>
+                  <p className="text-xs text-gray-500">Add medical conditions for multiple family members to help assess health risk factors.</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={addFamilyHistory}
+                  className="flex items-center gap-1.5 text-sm bg-blue-50 text-medical-blue hover:bg-blue-100 px-3.5 py-2 rounded-xl font-bold transition-all border border-blue-100 shadow-sm"
+                >
+                  <Plus size={16} /> Add Family Disease History
+                </button>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 text-xs uppercase tracking-wider">
+                      <th className="py-3 px-4 w-1/4">Relation</th>
+                      <th className="py-3 px-4 w-1/3">Disease / Medical Condition</th>
+                      <th className="py-3 px-4">Notes / Remarks (Optional)</th>
+                      <th className="py-3 px-4 w-12 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {familyHistory.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="p-3">
+                          <select
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm font-medium"
+                            value={item.relation}
+                            onChange={e => updateFamilyHistory(index, 'relation', e.target.value)}
+                          >
+                            <option value="">Select Relation</option>
+                            <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Brother">Brother</option>
+                            <option value="Sister">Sister</option>
+                            <option value="Grandfather">Grandfather</option>
+                            <option value="Grandmother">Grandmother</option>
+                            <option value="Son">Son</option>
+                            <option value="Daughter">Daughter</option>
+                            <option value="Uncle">Uncle</option>
+                            <option value="Aunt">Aunt</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            placeholder="e.g. Diabetes Type 2, Hypertension"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm"
+                            value={item.disease}
+                            onChange={e => updateFamilyHistory(index, 'disease', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            placeholder="e.g. Diagnosed at age 45"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm"
+                            value={item.notes || ''}
+                            onChange={e => updateFamilyHistory(index, 'notes', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          {familyHistory.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeFamilyHistory(index)}
+                              className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-colors inline-flex items-center justify-center"
+                              title="Remove Entry"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
