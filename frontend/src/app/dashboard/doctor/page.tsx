@@ -34,6 +34,28 @@ export default function DoctorDashboard() {
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
+  const parseAllergies = (allergiesData: any) => {
+    if (!allergiesData) return 'None reported';
+    try {
+      const parsed = typeof allergiesData === 'string' ? JSON.parse(allergiesData) : allergiesData;
+      const active = Object.keys(parsed).filter(k => k !== 'other' && parsed[k]);
+      if (parsed.other) active.push(parsed.other);
+      return active.length > 0 ? active.join(', ') : 'None reported';
+    } catch {
+      return 'None reported';
+    }
+  };
+
+  const parseEmergencyContacts = (contactsData: any) => {
+    if (!contactsData) return [];
+    try {
+      const parsed = typeof contactsData === 'string' ? JSON.parse(contactsData) : contactsData;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   // Scanner State
   const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -218,6 +240,16 @@ export default function DoctorDashboard() {
     } catch { return 'None reported'; }
   };
 
+  const parseEmergencyContacts = (contactsStr: string) => {
+    if (!contactsStr) return [];
+    try {
+      const parsed = JSON.parse(contactsStr);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   const handleAiSearch = async () => {
     if (!aiSearchQuery.trim() || !patientData) return;
     setAiSearchLoading(true);
@@ -358,34 +390,63 @@ export default function DoctorDashboard() {
                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                     
                     {/* Patient Overview */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap gap-6 items-start">
-                       {patientData.patient.face_photo_url && patientData.patient.face_photo_url !== 'dummy-url-for-now' ? (
-                          <img 
-                            src={getFileUrl(patientData.patient.face_photo_url)} 
-                            alt="Patient Face Photo" 
-                            className="w-20 h-20 rounded-full object-cover border-2 border-medical-blue shadow-md shrink-0" 
-                          />
-                       ) : (
-                          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                             <User size={40} className="text-medical-blue" />
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
+                      <div className="flex flex-wrap gap-6 items-start">
+                         {patientData.patient.face_photo_url && patientData.patient.face_photo_url !== 'dummy-url-for-now' ? (
+                            <img 
+                              src={getFileUrl(patientData.patient.face_photo_url)} 
+                              alt="Patient Face Photo" 
+                              className="w-20 h-20 rounded-full object-cover border-2 border-medical-blue shadow-md shrink-0" 
+                            />
+                         ) : (
+                            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                               <User size={40} className="text-medical-blue" />
+                            </div>
+                         )}
+                         <div className="flex-1 min-w-[200px]">
+                            <h2 className="text-2xl font-bold text-gray-800">{patientData.patient.full_name}</h2>
+                            <p className="text-gray-500 font-mono tracking-widest">{patientData.patient.upahaar_id}</p>
+                            <div className="flex gap-4 mt-3">
+                               <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold border border-red-200">
+                                 Blood: {patientData.patient.blood_group || 'Unknown'}
+                               </span>
+                               <span className="flex items-center gap-1 text-sm text-gray-600 font-semibold">
+                                  <Phone size={14} /> {patientData.patient.phone}
+                               </span>
+                            </div>
+                         </div>
+                         <div className="w-full lg:w-auto bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm min-w-[150px]">
+                            <strong className="block text-gray-700 mb-1">Allergies</strong>
+                            <p className="text-red-600 font-medium capitalize">{parseAllergies(patientData.patient.allergies)}</p>
+                         </div>
+                      </div>
+
+                      {/* Emergency Contacts Row */}
+                      {parseEmergencyContacts(patientData.patient.emergency_contacts).length > 0 && (
+                        <div className="border-t pt-4">
+                          <strong className="block text-xs uppercase tracking-wider text-red-600 mb-3">Emergency Contacts</strong>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {parseEmergencyContacts(patientData.patient.emergency_contacts).map((contact: any, idx: number) => (
+                              <div key={idx} className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex justify-between items-center text-sm">
+                                <div>
+                                  <span className="font-bold text-gray-800 block">{contact.name}</span>
+                                  <span className="text-xs text-red-700 font-medium uppercase tracking-wider">{contact.relation}</span>
+                                </div>
+                                <a 
+                                  href={`tel:${contact.phone}`} 
+                                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors text-xs shadow-sm"
+                                >
+                                  <Phone size={14} /> {contact.phone}
+                                </a>
+                              </div>
+                            ))}
                           </div>
-                       )}
-                       <div className="flex-1 min-w-[200px]">
-                          <h2 className="text-2xl font-bold text-gray-800">{patientData.patient.full_name}</h2>
-                          <p className="text-gray-500 font-mono tracking-widest">{patientData.patient.upahaar_id}</p>
-                          <div className="flex gap-4 mt-3">
-                             <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold border border-red-200">
-                               Blood: {patientData.patient.blood_group || 'Unknown'}
-                             </span>
-                             <span className="flex items-center gap-1 text-sm text-gray-600 font-semibold">
-                               <Phone size={14} /> {patientData.patient.phone}
-                             </span>
+                        </div>
+                      )}
+                    </div>
                           </div>
-                       </div>
-                       <div className="w-full lg:w-auto bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm">
-                          <strong className="block text-gray-700 mb-1">Allergies</strong>
-                          <p className="text-red-600 font-medium capitalize">{parseAllergies(patientData.patient.allergies)}</p>
-                       </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Active Medications (Ongoing) */}

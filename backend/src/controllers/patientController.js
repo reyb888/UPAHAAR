@@ -25,19 +25,24 @@ export const updateProfile = (req, res) => {
         vision_left, vision_right, hearing_status, allergies, 
         family_history, mental_health, respiratory_disorders, 
         heart_problems, nervous_disorders, identifying_features,
+        emergency_contacts,
         face_photo_url
     } = req.body;
 
     const fields = [
-        dob, gender, blood_group, height_cm, weight_kg, chest_size_cm,
-        vision_left, vision_right, hearing_status, 
-        allergies ? JSON.stringify(allergies) : null,
-        family_history ? JSON.stringify(family_history) : null,
-        mental_health ? JSON.stringify(mental_health) : null,
-        respiratory_disorders ? JSON.stringify(respiratory_disorders) : null,
-        heart_problems ? JSON.stringify(heart_problems) : null,
-        nervous_disorders ? JSON.stringify(nervous_disorders) : null,
-        identifying_features, userId
+        dob || null, gender || null, blood_group || null, 
+        height_cm != null ? height_cm : null, weight_kg != null ? weight_kg : null, chest_size_cm != null ? chest_size_cm : null,
+        vision_left || null, vision_right || null, 
+        hearing_status ? (typeof hearing_status === 'string' ? hearing_status : JSON.stringify(hearing_status)) : null, 
+        allergies ? (typeof allergies === 'string' ? allergies : JSON.stringify(allergies)) : null,
+        family_history ? (typeof family_history === 'string' ? family_history : JSON.stringify(family_history)) : null,
+        mental_health ? (typeof mental_health === 'string' ? mental_health : JSON.stringify(mental_health)) : null,
+        respiratory_disorders ? (typeof respiratory_disorders === 'string' ? respiratory_disorders : JSON.stringify(respiratory_disorders)) : null,
+        heart_problems ? (typeof heart_problems === 'string' ? heart_problems : JSON.stringify(heart_problems)) : null,
+        nervous_disorders ? (typeof nervous_disorders === 'string' ? nervous_disorders : JSON.stringify(nervous_disorders)) : null,
+        identifying_features || null,
+        emergency_contacts ? (typeof emergency_contacts === 'string' ? emergency_contacts : JSON.stringify(emergency_contacts)) : null,
+        userId
     ];
 
     if (face_photo_url) {
@@ -48,10 +53,16 @@ export const updateProfile = (req, res) => {
 
     db.run(
         `UPDATE medical_profiles SET 
-            dob = COALESCE(?, dob), gender = COALESCE(?, gender), blood_group = ?, height_cm = ?, weight_kg = ?, chest_size_cm = ?, 
-            vision_left = ?, vision_right = ?, hearing_status = ?, allergies = ?, 
-            family_history = ?, mental_health = ?, respiratory_disorders = ?, 
-            heart_problems = ?, nervous_disorders = ?, identifying_features = ?
+            dob = COALESCE(?, dob), gender = COALESCE(?, gender), 
+            blood_group = COALESCE(?, blood_group), height_cm = COALESCE(?, height_cm), 
+            weight_kg = COALESCE(?, weight_kg), chest_size_cm = COALESCE(?, chest_size_cm), 
+            vision_left = COALESCE(?, vision_left), vision_right = COALESCE(?, vision_right), 
+            hearing_status = COALESCE(?, hearing_status), allergies = COALESCE(?, allergies), 
+            family_history = COALESCE(?, family_history), mental_health = COALESCE(?, mental_health), 
+            respiratory_disorders = COALESCE(?, respiratory_disorders), 
+            heart_problems = COALESCE(?, heart_problems), nervous_disorders = COALESCE(?, nervous_disorders), 
+            identifying_features = COALESCE(?, identifying_features),
+            emergency_contacts = COALESCE(?, emergency_contacts)
          WHERE user_id = ?`,
         fields,
         function (err) {

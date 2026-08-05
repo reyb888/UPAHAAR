@@ -100,6 +100,7 @@ export const initializeDB = async () => {
         heart_problems TEXT,
         nervous_disorders TEXT,
         identifying_features TEXT,
+        emergency_contacts TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
 

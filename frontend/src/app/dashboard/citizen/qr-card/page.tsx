@@ -43,6 +43,16 @@ export default function CitizenQRCard() {
     }
   };
 
+  const getEmergencyContacts = () => {
+    if (!profile?.emergency_contacts) return [];
+    try {
+      const parsed = JSON.parse(profile.emergency_contacts);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -141,6 +151,24 @@ export default function CitizenQRCard() {
                 <Phone size={16} className="opacity-80 shrink-0" /> 
                 <span className="font-medium break-all">{profile.phone} (Primary Phone)</span>
               </p>
+              
+              {/* Emergency Contacts List */}
+              {getEmergencyContacts().length > 0 && (
+                <div className="mt-3 pt-3 border-t border-red-200/50 space-y-2">
+                  <strong className="block text-xs uppercase tracking-wide opacity-80 text-red-700">Emergency Contacts</strong>
+                  {getEmergencyContacts().map((contact: any, index: number) => (
+                    <div key={index} className="bg-red-100/30 p-2.5 rounded-lg border border-red-100/50 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-red-900 block">{contact.name}</span>
+                        <span className="text-[10px] text-red-700/80 font-medium uppercase tracking-wider">{contact.relation}</span>
+                      </div>
+                      <a href={`tel:${contact.phone}`} className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-2.5 py-1 rounded-md transition-colors shadow-sm">
+                        <Phone size={12} /> {contact.phone}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
