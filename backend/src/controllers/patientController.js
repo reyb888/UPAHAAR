@@ -235,34 +235,75 @@ export const getNearbyPharmacies = async (req, res) => {
             }
         };
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Goog-Api-Key': apiKey,
-                'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.regularOpeningHours.openNow'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        let response;
+        let data;
+        let fetchSuccessful = false;
+        let mappedPharmacies = [];
 
-        const data = await response.json();
+        try {
+            console.log('Attempting to fetch pharmacies via Places API (New)...');
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.regularOpeningHours.openNow'
+                },
+                body: JSON.stringify(requestBody)
+            });
 
-        if (!response.ok) {
-            console.error('Google Maps API Error:', data);
-            return res.status(500).json({ message: 'Failed to fetch from Google Maps' });
+            data = await response.json();
+
+            if (response.ok) {
+                mappedPharmacies = (data.places || []).map(place => ({
+                    place_id: place.id,
+                    name: place.displayName?.text || 'Unknown Pharmacy',
+                    vicinity: place.formattedAddress || '',
+                    rating: place.rating || null,
+                    user_ratings_total: place.userRatingCount || 0,
+                    opening_hours: place.regularOpeningHours ? { open_now: place.regularOpeningHours.openNow } : undefined
+                }));
+                fetchSuccessful = true;
+            } else {
+                console.warn('Places API (New) returned error status:', response.status, data);
+            }
+        } catch (newApiError) {
+            console.warn('Places API (New) fetch threw error:', newApiError.message || newApiError);
         }
 
-        // Map New API response to match what the frontend expects
-        const mappedPharmacies = (data.places || []).map(place => ({
-            place_id: place.id,
-            name: place.displayName?.text || 'Unknown Pharmacy',
-            vicinity: place.formattedAddress || '',
-            rating: place.rating || null,
-            user_ratings_total: place.userRatingCount || 0,
-            opening_hours: place.regularOpeningHours ? { open_now: place.regularOpeningHours.openNow } : undefined
-        }));
+        // Fallback to Classic Places API if New API failed
+        if (!fetchSuccessful) {
+            console.log('Falling back to Classic Places API (nearbysearch)...');
+            const classicUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=pharmacy&key=${apiKey}`;
+            
+            try {
+                const classicResponse = await fetch(classicUrl);
+                const classicData = await classicResponse.json();
 
-        res.json({ pharmacies: mappedPharmacies });
+                if (classicResponse.ok && (classicData.status === 'OK' || classicData.status === 'ZERO_RESULTS')) {
+                    mappedPharmacies = (classicData.results || []).map(place => ({
+                        place_id: place.place_id,
+                        name: place.name || 'Unknown Pharmacy',
+                        vicinity: place.vicinity || '',
+                        rating: place.rating || null,
+                        user_ratings_total: place.user_ratings_total || 0,
+                        opening_hours: place.opening_hours ? { open_now: place.opening_hours.open_now } : undefined
+                    }));
+                    fetchSuccessful = true;
+                } else {
+                    console.error('Classic Places API returned error status or invalid state. Status:', classicData.status, 'Error Message:', classicData.error_message);
+                }
+            } catch (classicApiError) {
+                console.error('Classic Places API fetch threw error:', classicApiError.message || classicApiError);
+            }
+        }
+
+        if (fetchSuccessful) {
+            return res.json({ pharmacies: mappedPharmacies });
+        }
+
+        return res.status(500).json({ message: 'Failed to fetch from Google Maps (both Places API New and Classic failed)' });
+
     } catch (error) {
         console.error('Error fetching pharmacies:', error);
         res.status(500).json({ message: 'Internal server error' });
