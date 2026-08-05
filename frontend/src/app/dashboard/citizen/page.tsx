@@ -16,7 +16,6 @@ export default function CitizenDashboard() {
   const [takenMeds, setTakenMeds] = useState<number[]>([]);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
-
   // Document Modal State
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
