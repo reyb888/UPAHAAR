@@ -242,26 +242,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  const parseAllergies = (allergiesStr: string) => {
-    if (!allergiesStr) return 'None reported';
-    try {
-      const parsed = JSON.parse(allergiesStr);
-      const active = Object.keys(parsed).filter(k => k !== 'other' && parsed[k]);
-      if (parsed.other) active.push(parsed.other);
-      return active.length > 0 ? active.join(', ') : 'None reported';
-    } catch { return 'None reported'; }
-  };
-
-  const parseEmergencyContacts = (contactsStr: string) => {
-    if (!contactsStr) return [];
-    try {
-      const parsed = JSON.parse(contactsStr);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
-
   const handleAiSearch = async () => {
     if (!aiSearchQuery.trim() || !patientData) return;
     setAiSearchLoading(true);
