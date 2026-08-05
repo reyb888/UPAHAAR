@@ -1,5 +1,5 @@
 import { db } from '../db/sqliteSetup.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateGeminiContent } from '../utils/gemini.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const scanPatientQr = (req, res) => {
@@ -18,7 +18,7 @@ export const scanPatientQr = (req, res) => {
         if (revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
 
         // 2. Find the citizen's profile
-        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, m.* 
+        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                 FROM users u 
                 LEFT JOIN medical_profiles m ON u.id = m.user_id 
                 WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'`, 
@@ -53,7 +53,7 @@ export const searchPatientHistoryAI = async (req, res) => {
         return res.status(400).json({ message: 'Search query is required' });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_BACKUP_API_KEY) {
         return res.status(500).json({ message: 'AI processing is disabled (No API Key)' });
     }
 
@@ -82,9 +82,6 @@ export const searchPatientHistoryAI = async (req, res) => {
             });
 
             try {
-                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-                
                 const prompt = `You are an expert medical AI assistant.
 A doctor is searching this patient's medical history for the following condition/disease: "${query}"
 
@@ -98,7 +95,7 @@ Based ONLY on the provided history:
 
 Do not invent any information. Be direct and professional.`;
 
-                const result = await model.generateContent(prompt);
+                const result = await generateGeminiContent(prompt, { model: "gemini-2.5-flash" });
                 const response = await result.response;
                 
                 res.json({ summary: response.text().trim() });
@@ -119,7 +116,7 @@ export const scanPatientFace = async (req, res) => {
         return res.status(400).json({ message: 'Face image is required' });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_BACKUP_API_KEY) {
         return res.status(500).json({ message: 'AI processing is disabled (No API Key)' });
     }
 
@@ -136,9 +133,6 @@ export const scanPatientFace = async (req, res) => {
         }
 
         try {
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
             let prompt = `You are a highly secure forensic facial recognition system.
 I am providing you with one TARGET face image (the first image), followed by a database of ${citizens.length} KNOWN faces.
 
@@ -162,7 +156,7 @@ If there is no match or you are unsure, respond with {"match": null}
                 });
             }
 
-            const result = await model.generateContent(contents);
+            const result = await generateGeminiContent(contents, { model: "gemini-2.5-flash" });
             const responseText = await result.response.text();
             
             try {

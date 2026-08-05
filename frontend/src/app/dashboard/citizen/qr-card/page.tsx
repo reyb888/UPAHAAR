@@ -94,7 +94,18 @@ export default function CitizenQRCard() {
           </div>
 
           {/* User Info */}
-          <div className="p-6 text-center border-b border-gray-100 bg-gray-50/50">
+          <div className="p-6 text-center border-b border-gray-100 bg-gray-50/50 flex flex-col items-center">
+            {profile.face_photo_url && profile.face_photo_url !== 'dummy-url-for-now' ? (
+              <img 
+                src={profile.face_photo_url} 
+                alt="Facial Recognition Photo" 
+                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md mb-3"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-3 shadow-inner">
+                <Shield className="text-medical-blue" size={36} />
+              </div>
+            )}
             <h4 className="text-2xl font-bold text-gray-800">{profile.full_name}</h4>
             <p className="text-gray-500 font-mono mt-1 tracking-widest text-lg">{profile.upahaar_id}</p>
           </div>

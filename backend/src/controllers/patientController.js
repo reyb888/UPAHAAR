@@ -1,13 +1,13 @@
 import { db } from '../db/sqliteSetup.js';
 import { v4 as uuidv4 } from 'uuid';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateGeminiContent } from '../utils/gemini.js';
 import fs from 'fs';
 import path from 'path';
 
 export const getProfile = (req, res) => {
     const userId = req.user.id;
     
-    db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, m.* 
+    db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
             FROM users u 
             JOIN medical_profiles m ON u.id = m.user_id 
             WHERE u.id = ?`, [userId], (err, profile) => {
@@ -25,7 +25,8 @@ export const updateProfile = (req, res) => {
         vision_left, vision_right, hearing_status, allergies, 
         family_history, mental_health, respiratory_disorders, 
         heart_problems, nervous_disorders, identifying_features,
-        emergency_contacts
+        emergency_contacts,
+        face_photo_url
     } = req.body;
 
     const fields = [
@@ -41,6 +42,12 @@ export const updateProfile = (req, res) => {
         emergency_contacts ? JSON.stringify(emergency_contacts) : null,
         userId
     ];
+
+    if (face_photo_url) {
+        db.run(`UPDATE users SET face_photo_url = ? WHERE id = ?`, [face_photo_url, userId], (err) => {
+            if (err) console.error("Error updating user face photo:", err.message);
+        });
+    }
 
     db.run(
         `UPDATE medical_profiles SET 
@@ -80,10 +87,7 @@ export const uploadPrescription = async (req, res) => {
     let rawOcrText = null;
 
     try {
-        if (process.env.GEMINI_API_KEY) {
-            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            
+        if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
             if (mimeType.startsWith('image/') || mimeType === 'application/pdf') {
                 const prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
 You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
@@ -98,7 +102,7 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     }
                 };
                 
-                const result = await model.generateContent([prompt, filePart]);
+                const result = await generateGeminiContent([prompt, filePart], { model: "gemini-2.5-flash" });
                 const response = await result.response;
                 let text = response.text().trim();
                 
@@ -168,6 +172,38 @@ export const deletePrescription = (req, res) => {
             if (err) return res.status(500).json({ message: 'Failed to delete record' });
             res.json({ message: 'Prescription deleted successfully' });
         });
+    });
+};
+
+export const removeMedicineFromPrescription = (req, res) => {
+    const citizenId = req.user.id;
+    const { id } = req.params; // prescriptionId
+    const { name } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ message: 'Medicine name is required' });
+    }
+
+    db.get(`SELECT medicines FROM prescriptions WHERE id = ? AND citizen_id = ?`, [id, citizenId], (err, row) => {
+        if (err || !row) return res.status(404).json({ message: 'Prescription not found' });
+
+        try {
+            let medicines = JSON.parse(row.medicines || '[]');
+            if (!Array.isArray(medicines)) medicines = [];
+
+            // Filter out the medicine with the matching name
+            const updatedMedicines = medicines.filter(m => m.name.trim().toLowerCase() !== name.trim().toLowerCase());
+
+            db.run(`UPDATE prescriptions SET medicines = ? WHERE id = ? AND citizen_id = ?`,
+                [JSON.stringify(updatedMedicines), id, citizenId],
+                function(err) {
+                    if (err) return res.status(500).json({ message: 'Failed to remove medicine' });
+                    res.json({ message: 'Medicine removed successfully', medicines: updatedMedicines });
+                }
+            );
+        } catch (e) {
+            return res.status(500).json({ message: 'Failed to parse medicines database field' });
+        }
     });
 };
 
