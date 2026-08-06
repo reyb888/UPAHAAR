@@ -363,6 +363,7 @@ export default function CitizenDashboard() {
                         >
                           <Trash2 size={16} />
                         </button>
+                      </div>
                       <div className="flex justify-between items-center mb-3">
                         <button 
                           onClick={() => { setSelectedDoc(item); setShowDocModal(true); }} 
