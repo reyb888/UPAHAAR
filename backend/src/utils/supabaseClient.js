@@ -12,3 +12,5 @@ const isValidUrl = (url) => {
 export const supabase = (isValidUrl(supabaseUrl) && supabaseKey)
     ? createClient(supabaseUrl, supabaseKey)
     : null;
+
+console.log(`[Supabase] Client initialized successfully: ${!!supabase} (URL: ${supabaseUrl || 'NOT SET'})`);
