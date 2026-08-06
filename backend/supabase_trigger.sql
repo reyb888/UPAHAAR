@@ -23,20 +23,20 @@ begin
     face_photo_url
   )
   values (
-    new.id,
+    new.id::text,
     coalesce(new.raw_user_meta_data->>'upahaar_id', 'UPHR-' || floor(random() * 9000000000 + 1000000000)::text),
     coalesce(new.raw_user_meta_data->>'role', 'CITIZEN'),
     coalesce(new.raw_user_meta_data->>'full_name', ''),
     new.email,
-    coalesce(new.raw_user_meta_data->>'phone', new.id), -- fallback to user id if phone is empty to satisfy unique constraint
-    '', -- password_hash is not used for Supabase Auth accounts
+    coalesce(new.raw_user_meta_data->>'phone', new.id::text),
+    '',
     new.raw_user_meta_data->>'face_photo_url'
   );
   
   -- If the user role is CITIZEN, also initialize their medical profile
   if coalesce(new.raw_user_meta_data->>'role', 'CITIZEN') = 'CITIZEN' then
     insert into public.medical_profiles (user_id, dob)
-    values (new.id, new.raw_user_meta_data->>'dob');
+    values (new.id::text, new.raw_user_meta_data->>'dob');
   end if;
 
   return new;
