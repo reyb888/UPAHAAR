@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPAHAAR — Your health, in one place</title>
+<meta name="description" content="UPAHAAR is a smart digital medical wallet that securely stores and organizes all your health records — prescriptions, reports, allergies, medications and emergency information — in one place.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   UPAHAAR · brand tokens (user-provided brand source)
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --fg: #0f172a;
+  --fg-2: #1e293b;
+  --muted: #64748b;
+  --meta: #94a3b8;
+  --border: #e2e8f0;
+  --border-soft: #eef2f7;
+  --accent: #2563EB;
+  --accent-deep: #1E3A8A;
+  --accent-soft: #DBEAFE;
+  --accent-on: #ffffff;
+  --accent-hover: color-mix(in oklab, var(--accent), black 12%);
+  --accent-active: color-mix(in oklab, var(--accent), black 20%);
+  --accent-ink: oklch(0.379 0.146 265.522);
+  --success: #16a34a;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --font-display: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+  --elev-1: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --elev-2: 0 10px 24px -8px rgba(30,58,138,.18), 0 2px 8px rgba(15,23,42,.06);
+  --elev-3: 0 24px 48px -16px rgba(30,58,138,.30), 0 8px 24px -8px rgba(15,23,42,.12);
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 65%);
+  --grad-brand: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  --grad-dark: linear-gradient(160deg, oklch(0.28 0.10 262) 0%, var(--accent-deep) 100%);
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 420ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --container: 1200px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img, svg { display: block; }
+a { color: inherit; text-decoration: none; }
+button, input, select { font: inherit; color: inherit; }
+::selection { background: var(--accent-soft); color: var(--accent-ink); }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 10px; }
+
+.container { max-width: var(--container); margin: 0 auto; padding: 0 24px; }
+section { scroll-margin-top: 84px; }
+.section-head { max-width: 640px; margin-bottom: 48px; }
+.section-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-soft);
+  border-radius: var(--radius-pill); padding: 7px 14px; margin-bottom: 18px;
+}
+.eyebrow svg { width: 15px; height: 15px; }
+.section-title {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(30px, 4vw, 42px); line-height: 1.14; letter-spacing: -0.02em;
+}
+.section-sub { margin-top: 16px; color: var(--muted); font-size: 17px; max-width: 56ch; }
+.section-head.center .section-sub { margin-left: auto; margin-right: auto; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 13px 26px; border-radius: var(--radius-pill);
+  font-weight: 600; font-size: 16px; cursor: pointer; border: none;
+  transition: transform var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.btn svg { width: 18px; height: 18px; }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--grad-brand); color: var(--accent-on);
+  box-shadow: 0 12px 24px -10px rgba(37,99,235,.55);
+}
+.btn-primary:hover { box-shadow: 0 16px 30px -10px rgba(37,99,235,.65); filter: brightness(1.05); }
+.btn-ghost {
+  background: var(--surface); color: var(--fg-2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: color-mix(in oklab, var(--accent), white 30%); color: var(--accent); }
+.btn-white { background: #fff; color: var(--accent-ink); box-shadow: 0 10px 24px -12px rgba(15,23,42,.4); }
+.btn-white:hover { transform: translateY(-1px); }
+.text-link { font-weight: 600; color: var(--accent); }
+.text-link:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Reveal on scroll ────────────────────────────────────── */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.reveal-left { opacity: 0; transform: translateX(-28px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.reveal-right { opacity: 0; transform: translateX(28px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.reveal.in, .reveal-left.in, .reveal-right.in { opacity: 1; transform: none; }
+
+/* ── Navigation ──────────────────────────────────────────── */
+.nav {
+  position: fixed; inset: 0 0 auto 0; z-index: 60;
+  transition: background var(--motion-base) var(--ease), box-shadow var(--motion-base) var(--ease);
+}
+.nav.scrolled { background: rgba(255,255,255,.86); backdrop-filter: blur(16px); box-shadow: 0 1px 0 var(--border-soft); }
+.nav-inner { display: flex; align-items: center; gap: 24px; height: 72px; }
+.nav-brand { display: inline-flex; align-items: center; gap: 11px; font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; }
+.nav-brand .logo { width: 34px; height: 34px; }
+.nav-links { display: flex; gap: 30px; margin-left: 12px; }
+.nav-links a { font-size: 15px; font-weight: 500; color: var(--fg-2); padding: 6px 2px; }
+.nav-links a:hover { color: var(--accent); }
+.nav-actions { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+.nav-signin { font-weight: 600; color: var(--fg-2); font-size: 15px; }
+.nav-signin:hover { color: var(--accent); }
+@media (max-width: 900px) { .nav-links { display: none; } }
+
+/* ── Hero ────────────────────────────────────────────────── */
+.hero { position: relative; overflow: hidden; padding: 148px 0 104px; }
+.hero-bg { position: absolute; inset: 0; z-index: 0; }
+#particles { position: absolute; inset: 0; width: 100%; height: 100%; }
+.orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; pointer-events: none; }
+.orb-a { width: 520px; height: 520px; background: var(--accent-soft); top: -160px; right: -120px; }
+.orb-b { width: 420px; height: 420px; background: color-mix(in oklab, var(--accent-soft), white 30%); bottom: -160px; left: -120px; }
+.hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0,1fr) 440px; gap: 56px; align-items: center; }
+.hero h1 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(38px, 5vw, 58px); line-height: 1.06; letter-spacing: -0.025em;
+}
+.hero h1 .accent-word { color: var(--accent); }
+.hero .lead { margin-top: 22px; color: var(--muted); font-size: 18px; max-width: 52ch; }
+.hero-cta { display: flex; align-items: center; gap: 16px; margin-top: 34px; flex-wrap: wrap; }
+.hero-trust { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 40px; padding-top: 28px; border-top: 1px solid var(--border); }
+.hero-trust .t { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.hero-trust .t svg { width: 18px; height: 18px; color: var(--accent); }
+
+/* 3D scene */
+.scene { position: relative; perspective: 1300px; }
+.tilt { position: relative; transform-style: preserve-3d; transform: rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition: transform .35s var(--ease); }
+.scene .glow-ring {
+  position: absolute; inset: -6% -14% -6% -14%; pointer-events: none;
+  border: 1.5px dashed color-mix(in oklab, var(--accent), transparent 62%);
+  border-radius: 44% 56% 52% 48% / 48% 44% 56% 52%;
+  animation: spin 26s linear infinite;
+}
+.scene .glow-ring.r2 { inset: -16% -26% -16% -26%; opacity: .5; animation-duration: 40s; animation-direction: reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* The UPAHAAR health card */
+.health-card {
+  width: min(360px, 88vw); margin: 0 auto;
+  border-radius: 28px; overflow: hidden; background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--elev-3);
+  transform: translateZ(40px); position: relative;
+}
+.hc-head {
+  background: var(--grad-brand); padding: 24px 26px 22px; color: #fff; position: relative; overflow: hidden;
+}
+.hc-head::after { content: ""; position: absolute; right: -34px; top: -34px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.10); }
+.hc-brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .02em; }
+.hc-brand svg { width: 24px; height: 24px; }
+.hc-head .sub { margin-top: 5px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.75); font-weight: 500; }
+.hc-body { padding: 22px 26px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border-soft); }
+.hc-avatar { width: 58px; height: 58px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; font-family: var(--font-display); flex: none; }
+.hc-name { font-weight: 700; font-size: 19px; font-family: var(--font-display); }
+.hc-id { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: .08em; margin-top: 2px; }
+.hc-qr { padding: 20px 26px; display: flex; align-items: center; gap: 18px; }
+.qr-box { width: 104px; height: 104px; flex: none; background: #fff; border: 1px solid var(--border); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: var(--elev-1); }
+.qr-box svg { width: 84px; height: 84px; }
+.hc-qr .qr-label { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.hc-qr .qr-label strong { color: var(--fg-2); font-weight: 600; }
+.hc-emerg { background: var(--danger-soft); border-top: 1px solid #fee2e2; padding: 14px 26px; display: flex; align-items: center; gap: 12px; }
+.hc-emerg svg { width: 20px; height: 20px; color: var(--danger); flex: none; }
+.hc-emerg .e-label { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--danger); }
+.hc-emerg .e-val { font-size: 13px; color: #7f1d1d; font-weight: 500; margin-top: 1px; }
+.demo-tag {
+  position: absolute; top: 18px; right: -42px; transform: rotate(38deg);
+  background: var(--accent-deep); color: #fff; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .12em; padding: 5px 46px; text-transform: uppercase; z-index: 2;
+}
+
+/* floating chips */
+.chip {
+  position: absolute; display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(10px);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 11px 15px; box-shadow: var(--elev-2); white-space: nowrap;
+}
+.chip .ic { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex: none; }
+.chip .ic svg { width: 18px; height: 18px; }
+.chip .c-v { font-weight: 700; font-size: 15px; line-height: 1.15; font-family: var(--font-display); }
+.chip .c-k { font-size: 11.5px; color: var(--muted); }
+.chip-heart { top: 8%; left: -70px; transform: translateZ(90px); }
+.chip-heart .ic { background: #ffe4e6; color: #e11d48; }
+.chip-ai { bottom: 12%; left: -80px; transform: translateZ(120px); }
+.chip-ai .ic { background: var(--accent-soft); color: var(--accent); }
+.chip-sec { top: -6%; right: -52px; transform: translateZ(70px); }
+.chip-sec .ic { background: #dcfce7; color: #16a34a; }
+.chip-heart { animation: floaty 5.5s ease-in-out infinite; }
+.chip-ai { animation: floaty 6.5s ease-in-out infinite reverse; }
+.chip-sec { animation: floaty 5s ease-in-out infinite; }
+@keyframes floaty { 0%,100% { margin-top: 0; } 50% { margin-top: -12px; } }
+@media (max-width: 1080px) {
+  .chip-heart { left: -6px; top: -30px; }
+  .chip-ai { left: -6px; bottom: 24px; }
+  .chip-sec { right: -6px; top: -30px; }
+}
+
+/* ── Integrated auth card ────────────────────────────────── */
+.auth {
+  background: rgba(255,255,255,.88); backdrop-filter: blur(22px);
+  border: 1px solid rgba(226,232,240,.9); border-radius: var(--radius-lg);
+  box-shadow: var(--elev-3); padding: 28px 28px 22px;
+  transform: translateZ(0);
+}
+.auth-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.auth-head .logo { width: 40px; height: 40px; }
+.auth-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
+.auth-head p { font-size: 14px; color: var(--muted); }
+.role-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 5px; margin: 18px 0 20px; }
+.role-tab {
+  border: none; background: transparent; cursor: pointer; border-radius: var(--radius-pill);
+  padding: 9px 10px; font-weight: 600; font-size: 14.5px; color: var(--muted);
+  transition: color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.role-tab.active { background: var(--surface); color: var(--accent); box-shadow: var(--elev-1); }
+.field { margin-bottom: 15px; }
+.field label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--fg-2); margin-bottom: 7px; }
+.field label .hint { font-weight: 400; color: var(--meta); font-size: 12px; }
+.field input {
+  width: 100%; padding: 12px 15px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: rgba(248,250,252,.7);
+  font-size: 15px; transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+.field input::placeholder { color: var(--meta); }
+.field input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 46px; }
+.pw-toggle {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border: none; background: transparent; cursor: pointer;
+  color: var(--meta); display: flex; align-items: center; justify-content: center; border-radius: 10px;
+}
+.pw-toggle:hover { color: var(--accent); background: var(--bg); }
+.pw-toggle svg { width: 18px; height: 18px; }
+.auth-submit {
+  width: 100%; padding: 14px; margin-top: 4px;
+  background: var(--grad-brand); color: #fff; border: none; border-radius: var(--radius-pill);
+  font-weight: 600; font-size: 16px; cursor: pointer;
+  box-shadow: 0 12px 24px -10px rgba(37,99,235,.55);
+  transition: filter var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+.auth-submit:hover { filter: brightness(1.06); }
+.auth-submit:active { transform: translateY(1px); }
+.auth-submit.loading { opacity: .7; pointer-events: none; }
+.auth-switch { text-align: center; margin-top: 16px; font-size: 14px; color: var(--muted); }
+.auth-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border); font-size: 12.5px; color: var(--meta); }
+.auth-note svg { width: 16px; height: 16px; color: var(--accent); }
+.auth-msg { margin-top: 14px; font-size: 13.5px; border-radius: 12px; padding: 11px 14px; display: none; align-items: flex-start; gap: 9px; }
+.auth-msg svg { width: 17px; height: 17px; flex: none; margin-top: 1px; }
+.auth-msg.show { display: flex; }
+.auth-msg.info { background: var(--accent-soft); color: var(--accent-ink); }
+.auth-msg.err { background: var(--danger-soft); color: #b91c1c; }
+.auth-msg .reset-demo { margin-left: auto; border: none; background: transparent; color: inherit; font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.dropzone {
+  border: 2px dashed color-mix(in oklab, var(--accent), white 25%); border-radius: var(--radius-sm);
+  background: var(--accent-soft); padding: 16px; text-align: center; cursor: pointer;
+  color: var(--accent-ink); font-size: 13px; font-weight: 600; transition: background var(--motion-fast) var(--ease);
+}
+.dropzone:hover { background: color-mix(in oklab, var(--accent-soft), white 20%); }
+.dropzone svg { width: 22px; height: 22px; margin: 0 auto 6px; }
+.face-name { margin-top: 8px; font-size: 12.5px; color: var(--success); font-weight: 500; }
+
+/* ── Problem section ─────────────────────────────────────── */
+.problem { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.problem-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 56px; align-items: center; }
+.doc-cloud { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.doc-chip {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500;
+  color: var(--fg-2); background: var(--bg); border: 1px solid var(--border);
+  padding: 9px 14px; border-radius: var(--radius-pill); transition: transform var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+}
+.doc-chip svg { width: 15px; height: 15px; color: var(--meta); }
+.doc-chip:nth-child(odd):hover { transform: rotate(-3deg) translateY(-2px); border-color: var(--accent); }
+.doc-chip:nth-child(even):hover { transform: rotate(3deg) translateY(-2px); border-color: var(--accent); }
+.before-card, .after-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 26px;
+  box-shadow: var(--elev-1);
+}
+.before-card .bc-tag, .after-card .bc-tag { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--radius-pill); margin-bottom: 18px; }
+.before-card .bc-tag { background: var(--bg); color: var(--meta); }
+.after-card .bc-tag { background: var(--accent-soft); color: var(--accent); }
+.scatter { position: relative; height: 250px; }
+.paper {
+  position: absolute; width: 168px; padding: 13px 15px; border-radius: 14px;
+  background: #fff; border: 1px solid var(--border); box-shadow: var(--elev-2);
+  transition: transform .5s var(--ease);
+}
+.paper .p-t { font-size: 12.5px; font-weight: 600; color: var(--fg-2); }
+.paper .p-d { font-size: 11px; color: var(--meta); margin-top: 3px; font-family: var(--font-mono); }
+.paper .p-ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 9px; }
+.paper .p-ic svg { width: 16px; height: 16px; }
+.p1 { top: 0; left: 4%; transform: rotate(-7deg); }
+.p2 { top: 34px; left: 34%; transform: rotate(5deg); }
+.p3 { top: 88px; left: 6%; transform: rotate(3deg); }
+.p4 { top: 138px; left: 34%; transform: rotate(-4deg); }
+.p1 .p-ic { background: var(--accent-soft); color: var(--accent); }
+.p2 .p-ic { background: #ffe4e6; color: #e11d48; }
+.p3 .p-ic { background: #fef3c7; color: #b45309; }
+.p4 .p-ic { background: #dcfce7; color: #15803d; }
+.tl-list { display: flex; flex-direction: column; gap: 12px; }
+.tl-item { display: flex; gap: 14px; align-items: flex-start; }
+.tl-dot { width: 34px; height: 34px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; flex: none; }
+.tl-dot svg { width: 17px; height: 17px; }
+.tl-item h4 { font-size: 15px; font-weight: 600; }
+.tl-item p { font-size: 13.5px; color: var(--muted); }
+.tl-line { height: 1px; background: var(--border); margin-left: 17px; }
+
+/* ── How it works ────────────────────────────────────────── */
+.how { padding: 96px 0; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.step {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 30px; position: relative; box-shadow: var(--elev-1);
+  transition: transform var(--motion-base) var(--ease), box-shadow var(--motion-base) var(--ease), border-color var(--motion-base) var(--ease);
+}
+.step:hover { transform: translateY(-4px); box-shadow: var(--elev-2); border-color: color-mix(in oklab, var(--accent), white 30%); }
+.step-num {
+  position: absolute; top: 24px; right: 26px;
+  font-family: var(--font-display); font-weight: 700; font-size: 44px; line-height: 1;
+  color: var(--accent-soft); letter-spacing: -0.03em;
+}
+.step .ic { width: 48px; height: 48px; border-radius: 15px; background: var(--grad-brand); color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+.step .ic svg { width: 23px; height: 23px; }
+.step h3 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin-bottom: 9px; }
+.step p { font-size: 14.5px; color: var(--muted); }
+
+/* ── Features ────────────────────────────────────────────── */
+.features { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.feature {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 28px; display: flex; flex-direction: column; gap: 6px;
+  transition: transform var(--motion-base) var(--ease), box-shadow var(--motion-base) var(--ease), border-color var(--motion-base) var(--ease);
+}
+.feature:hover { transform: translateY(-4px); box-shadow: var(--elev-2); border-color: color-mix(in oklab, var(--accent), white 35%); }
+.feature .f-ic { width: 46px; height: 46px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+.feature .f-ic svg { width: 22px; height: 22px; }
+.feature h3 { font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.feature p { font-size: 14px; color: var(--muted); }
+.feature .f-extra { margin-top: 14px; }
+.feature-cta { margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
+.feature-cta:hover { color: var(--accent-deep); }
+.feature-cta svg { width: 15px; height: 15px; transition: transform var(--motion-fast) var(--ease); }
+.feature:hover .feature-cta svg { transform: translateX(3px); }
+
+/* mini vital chart */
+.vital-chart { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; background: var(--bg); }
+.vc-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.vc-tab {
+  border: none; background: transparent; cursor: pointer; font-size: 11.5px; font-weight: 600;
+  color: var(--muted); padding: 5px 10px; border-radius: var(--radius-pill);
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+.vc-tab.active { background: var(--surface); color: var(--accent); box-shadow: var(--elev-1); }
+.vc-svg { width: 100%; height: 92px; }
+.vc-val { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: var(--meta); }
+.vc-val strong { font-family: var(--font-display); font-size: 15px; color: var(--fg-2); }
+
+/* mini QR card graphic */
+.mini-qr-card {
+  border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--elev-1);
+}
+.mq-head { background: var(--grad-brand); padding: 12px 16px; color: #fff; display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+.mq-head svg { width: 16px; height: 16px; }
+.mq-body { display: flex; gap: 12px; align-items: center; padding: 12px 16px; }
+.mq-body .qr { width: 54px; height: 54px; border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; }
+.mq-body .qr svg { width: 42px; height: 42px; }
+.mq-info .n { font-size: 13px; font-weight: 600; }
+.mq-info .id { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+.mq-info .b { font-size: 10.5px; font-weight: 700; color: #b91c1c; background: var(--danger-soft); border: 1px solid #fee2e2; display: inline-block; padding: 2px 8px; border-radius: var(--radius-pill); margin-top: 4px; }
+
+.more-tags { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; justify-content: center; }
+.more-tag {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500;
+  color: var(--fg-2); background: var(--bg); border: 1px solid var(--border); padding: 10px 16px; border-radius: var(--radius-pill);
+}
+.more-tag svg { width: 16px; height: 16px; color: var(--accent); }
+
+/* ── Security ────────────────────────────────────────────── */
+.security { padding: 96px 0; background: var(--grad-dark); color: #fff; }
+.security .eyebrow { background: rgba(255,255,255,.12); color: #bfdbfe; }
+.security .section-title { color: #fff; }
+.security .section-sub { color: oklch(0.85 0.03 262); }
+.security-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 56px; align-items: center; }
+.sec-list { display: flex; flex-direction: column; gap: 16px; }
+.sec-item {
+  display: flex; gap: 16px; align-items: flex-start; padding: 20px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--radius-md);
+  transition: background var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+}
+.sec-item:hover { background: rgba(255,255,255,.1); transform: translateX(4px); }
+.sec-item .s-ic { width: 42px; height: 42px; border-radius: 13px; background: rgba(255,255,255,.12); color: #bfdbfe; display: flex; align-items: center; justify-content: center; flex: none; }
+.sec-item .s-ic svg { width: 20px; height: 20px; }
+.sec-item h4 { font-family: var(--font-display); font-weight: 600; font-size: 16.5px; color: #fff; }
+.sec-item p { font-size: 13.5px; color: oklch(0.82 0.03 262); margin-top: 3px; }
+.security .badge-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.security .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: var(--radius-pill); padding: 9px 16px; font-size: 13.5px; font-weight: 500; color: #e2e8f0; }
+.security .badge svg { width: 16px; height: 16px; color: #93c5fd; }
+
+/* ── Doctors ─────────────────────────────────────────────── */
+.doctors { padding: 96px 0; background: var(--surface); border-bottom: 1px solid var(--border-soft); }
+.doctors-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 56px; align-items: center; }
+.consent-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--elev-2); background: var(--surface);
+}
+.cc-head { background: var(--bg); border-bottom: 1px solid var(--border); padding: 16px 22px; display: flex; align-items: center; gap: 12px; }
+.cc-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--font-display); }
+.cc-head .who { font-weight: 600; font-size: 14.5px; }
+.cc-head .meta { font-size: 12px; color: var(--meta); }
+.cc-head .status { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--warn); background: #fef3c7; padding: 5px 12px; border-radius: var(--radius-pill); }
+.cc-body { padding: 20px 22px; }
+.cc-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border-soft); font-size: 14px; }
+.cc-row:last-child { border-bottom: none; }
+.cc-row .ck { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 500; }
+.cc-row .ck svg { width: 17px; height: 17px; color: var(--accent); }
+.cc-row .cv { margin-left: auto; font-weight: 600; color: var(--fg-2); }
+.cc-actions { display: flex; gap: 10px; padding: 0 22px 22px; }
+.cc-actions .btn { flex: 1; padding: 12px; font-size: 14.5px; }
+.btn-approve { background: var(--success); color: #fff; border: none; }
+.btn-approve:hover { filter: brightness(1.06); }
+.btn-revoke { background: var(--surface); color: var(--danger); border: 1px solid #fecaca; }
+.btn-revoke:hover { background: var(--danger-soft); }
+.doctor-steps { margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
+.d-step { display: flex; gap: 14px; align-items: flex-start; }
+.d-step .n { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex: none; font-family: var(--font-display); }
+.d-step p { font-size: 14.5px; color: var(--muted); }
+.d-step strong { color: var(--fg-2); font-weight: 600; }
+
+/* ── CTA ─────────────────────────────────────────────────── */
+.cta { padding: 24px 0 96px; }
+.cta-band {
+  background: var(--grad-brand); border-radius: 32px; padding: 64px 40px; text-align: center;
+  color: #fff; position: relative; overflow: hidden;
+}
+.cta-band::before { content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%; background: rgba(255,255,255,.08); top: -140px; right: -80px; }
+.cta-band::after { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,.07); bottom: -120px; left: -60px; }
+.cta-band h2 { position: relative; font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.02em; line-height: 1.12; }
+.cta-band p { position: relative; margin: 16px auto 0; max-width: 52ch; color: rgba(255,255,255,.85); font-size: 17px; }
+.cta-actions { position: relative; display: flex; gap: 16px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+.cta-mini { position: relative; margin-top: 22px; font-size: 13px; color: rgba(255,255,255,.7); }
+.cta-mini a { color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Footer ──────────────────────────────────────────────── */
+.footer { background: oklch(0.28 0.10 262); color: #cbd5e1; }
+.footer-top { padding: 64px 0 44px; display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 40px; }
+.footer-brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 19px; color: #fff; margin-bottom: 14px; }
+.footer-brand svg { width: 30px; height: 30px; }
+.footer-top p { font-size: 14px; line-height: 1.6; max-width: 34ch; }
+.footer h4 { color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 16px; letter-spacing: .02em; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+.footer-links a { font-size: 14px; color: #94a3b8; }
+.footer-links a:hover { color: #fff; }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,.1); padding: 22px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13.5px; color: #94a3b8; }
+.footer-disclaimer { font-size: 12.5px; color: #64748b; max-width: 64ch; }
+
+@media (max-width: 1080px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 64px; }
+  .scene { order: 2; max-width: 520px; margin: 0 auto; }
+  .auth { order: 1; max-width: 440px; margin: 0 auto; width: 100%; }
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .steps { grid-template-columns: 1fr; }
+  .problem-grid, .security-grid, .doctors-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+@media (max-width: 720px) {
+  .hero { padding-top: 120px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero-cta { flex-direction: column; align-items: stretch; }
+  .hero-cta .btn { width: 100%; }
+  .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .footer-top .f-brand-col { grid-column: 1 / -1; }
+  .before-card { margin-bottom: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important; scroll-behavior: auto !important;
+  }
+  .reveal, .reveal-left, .reveal-right { opacity: 1 !important; transform: none !important; }
+  .chip { animation: none !important; }
+  .scene .glow-ring { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ NAV ══════════════════════════ -->
+<header class="nav" data-od-id="nav" id="nav">
+  <div class="container nav-inner">
+    <a class="nav-brand" href="#hero" data-od-id="brand-link">
+      <svg class="logo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <defs><linearGradient id="lg-nav" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#2563EB"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient></defs>
+        <path d="M24 4 8 10v13c0 9.2 6.4 16.8 16 21 9.6-4.2 16-11.8 16-21V10L24 4Z" fill="url(#lg-nav)"/>
+        <path d="M16.5 24h6V18h3v6h6v3h-6v6h-3v-6h-6v-3Z" fill="#fff"/>
+      </svg>
+      <span>UPAHAAR</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#problem" data-od-id="nav-problem">The problem</a>
+      <a href="#how" data-od-id="nav-how">How it works</a>
+      <a href="#features" data-od-id="nav-features">Features</a>
+      <a href="#security" data-od-id="nav-security">Security</a>
+      <a href="#doctors" data-od-id="nav-doctors">For doctors</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="nav-signin" href="#auth" data-od-id="nav-signin">Sign in</a>
+      <a class="btn btn-primary" href="#auth" data-od-id="nav-cta">Get started</a>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════ HERO + AUTH ══════════════════ -->
+<section class="hero" id="hero" data-od-id="hero">
+  <div class="hero-bg" aria-hidden="true">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <canvas id="particles"></canvas>
+  </div>
+
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow reveal in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v6c0 5.25 3.8 9 9 11 5.2-2 9-5.75 9-11V7l-9-5Z"/><path d="m9 12 2 2 4-4"/></svg>Secure digital medical wallet</span>
+      <h1 class="reveal in" style="transition-delay:.05s">Every health record.<br>One place. <span class="accent-word">Always ready.</span></h1>
+      <p class="lead reveal in" style="transition-delay:.1s">
+        Prescriptions, reports, allergies, medications and emergency information — scattered across papers and apps,
+        or organized in one secure wallet you carry everywhere. UPAHAAR keeps your entire medical history one tap away.
+      </p>
+      <div class="hero-cta reveal in" style="transition-delay:.15s">
+        <a class="btn btn-primary" href="#auth" data-od-id="hero-cta-primary" onclick="upahaar.ui.openRegister()">
+          Create your UPAHAAR
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="#features" data-od-id="hero-cta-secondary">Explore features</a>
+      </div>
+      <div class="hero-trust reveal in" style="transition-delay:.2s">
+        <span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Two-factor authentication</span>
+        <span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Facial recognition access</span>
+        <span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9 12h6"/></svg>Encrypted by design</span>
+      </div>
+    </div>
+
+    <!-- Integrated login / register -->
+    <div class="scene reveal-right in" style="transition-delay:.15s" id="auth" data-od-id="auth-card">
+      <div class="glow-ring" aria-hidden="true"></div>
+      <div class="glow-ring r2" aria-hidden="true"></div>
+
+      <div class="tilt">
+        <div class="health-card" data-od-id="demo-health-card">
+          <span class="demo-tag">Sample card</span>
+          <div class="hc-head">
+            <div class="hc-brand">
+              <svg viewBox="0 0 48 48" fill="none"><path d="M24 4 8 10v13c0 9.2 6.4 16.8 16 21 9.6-4.2 16-11.8 16-21V10L24 4Z" fill="rgba(255,255,255,.18)"/><path d="M16.5 24h6V18h3v6h6v3h-6v6h-3v-6h-6v-3Z" fill="#fff"/></svg>
+              UPAHAAR
+            </div>
+            <div class="sub">Digital Medical Identity</div>
+          </div>
+          <div class="hc-body">
+            <div class="hc-avatar">A</div>
+            <div>
+              <div class="hc-name">Aarav Sharma</div>
+              <div class="hc-id">UPHR-2024-4587-1290</div>
+            </div>
+          </div>
+          <div class="hc-qr">
+            <div class="qr-box">
+              <svg viewBox="0 0 29 29" fill="#0f172a" aria-hidden="true">
+                <rect width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="4" y="4" width="3" height="3" fill="#0f172a"/><rect x="8" y="4" width="1.6" height="1.6" fill="#0f172a"/>
+                <rect x="18" y="0" width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="21" y="4" width="3" height="3" fill="#0f172a"/><rect x="17" y="17" width="2.4" height="2.4" fill="#0f172a"/>
+                <rect x="0" y="18" width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="4" y="21" width="3" height="3" fill="#0f172a"/><rect x="8" y="8" width="1.6" height="1.6" fill="#0f172a"/>
+                <rect x="12" y="1" width="2.2" height="2.2" fill="#0f172a"/><rect x="14" y="6" width="2.2" height="2.2" fill="#0f172a"/><rect x="12" y="12" width="2.2" height="2.2" fill="#0f172a"/>
+                <rect x="8" y="14" width="1.6" height="1.6" fill="#0f172a"/><rect x="13" y="16" width="1.6" height="1.6" fill="#0f172a"/><rect x="12" y="20" width="2.2" height="2.2" fill="#0f172a"/>
+                <rect x="16" y="12" width="2.2" height="2.2" fill="#0f172a"/><rect x="20" y="11" width="1.6" height="1.6" fill="#0f172a"/><rect x="21" y="15" width="2.2" height="2.2" fill="#0f172a"/>
+                <rect x="18" y="20" width="2.2" height="2.2" fill="#0f172a"/><rect x="22" y="22" width="2.2" height="2.2" fill="#0f172a"/><rect x="14" y="25" width="2.2" height="2.2" fill="#0f172a"/><rect x="21" y="25" width="1.6" height="1.6" fill="#0f172a"/>
+                <rect x="9" y="13" width="1.6" height="1.6" fill="#0f172a"/><rect x="5" y="12" width="1.6" height="1.6" fill="#0f172a"/><rect x="12" y="10" width="1.6" height="1.6" fill="#0f172a"/>
+              </svg>
+            </div>
+            <div class="qr-label">
+              <strong>Scan for emergency access</strong><br>
+              Medics retrieve your clinical timeline instantly — no OTP needed in an emergency.
+            </div>
+          </div>
+          <div class="hc-emerg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <div>
+              <div class="e-label">Emergency info</div>
+              <div class="e-val">Blood: O+ · Allergies: Penicillin</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chip chip-heart" aria-hidden="true">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg></span>
+          <span><span class="c-v">72 bpm</span><br><span class="c-k">Vital tracker</span></span>
+        </div>
+        <div class="chip chip-ai" aria-hidden="true">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></span>
+          <span><span class="c-v">AI summary</span><br><span class="c-k">Timeline ready</span></span>
+        </div>
+        <div class="chip chip-sec" aria-hidden="true">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span><span class="c-v">2FA on</span><br><span class="c-k">Protected</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth card (rendered below hero copy on mobile) -->
+    <div class="auth" data-od-id="login-panel">
+      <div class="auth-head">
+        <svg class="logo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 4 8 10v13c0 9.2 6.4 16.8 16 21 9.6-4.2 16-11.8 16-21V10L24 4Z" fill="url(#lg-nav)"/>
+          <path d="M16.5 24h6V18h3v6h6v3h-6v6h-3v-6h-6v-3Z" fill="#fff"/>
+        </svg>
+        <div>
+          <h2 id="auth-title">Welcome back</h2>
+          <p id="auth-subtitle">Access your digital health records</p>
+        </div>
+      </div>
+
+      <div class="role-tabs" role="tablist" aria-label="Account type">
+        <button class="role-tab active" id="tab-citizen" data-role="citizen" data-od-id="role-tab-citizen" role="tab" aria-selected="true">Citizen</button>
+        <button class="role-tab" id="tab-doctor" data-role="doctor" data-od-id="role-tab-doctor" role="tab" aria-selected="false">Doctor</button>
+      </div>
+
+      <div id="auth-msg" class="auth-msg info" data-od-id="auth-message" role="status" aria-live="polite"></div>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="login-id">UPAHAAR ID or Email</label>
+          <input id="login-id" type="text" autocomplete="username" placeholder="UPHR-1234567890 or you@email.com" data-od-id="login-identifier">
+        </div>
+        <div class="field">
+          <label for="login-pw">Password</label>
+          <div class="pw-wrap">
+            <input id="login-pw" type="password" autocomplete="current-password" placeholder="Enter your password" data-od-id="login-password">
+            <button type="button" class="pw-toggle" aria-label="Show password" onclick="upahaar.ui.togglePw(this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="login-otp">Authenticator code <span class="hint">leave blank if 2FA is off</span></label>
+          <input id="login-otp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" data-od-id="login-otp">
+        </div>
+        <button class="auth-submit" type="submit" id="login-submit" data-od-id="login-submit">Sign in to UPAHAAR</button>
+        <p class="auth-switch">New to UPAHAAR? <a class="text-link" href="#" data-od-id="go-register" onclick="upahaar.ui.openRegister();return false;">Create your account</a></p>
+      </form>
+
+      <form id="register-form" hidden novalidate>
+        <div class="field">
+          <label for="reg-name">Full name</label>
+          <input id="reg-name" type="text" autocomplete="name" placeholder="e.g. Aarav Sharma" data-od-id="reg-name">
+        </div>
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" autocomplete="email" placeholder="you@email.com" data-od-id="reg-email">
+        </div>
+        <div class="field">
+          <label for="reg-phone">Phone</label>
+          <input id="reg-phone" type="tel" autocomplete="tel" placeholder="+91 98765 43210" data-od-id="reg-phone">
+        </div>
+        <div class="field">
+          <label for="reg-dob">Date of birth</label>
+          <input id="reg-dob" type="date" data-od-id="reg-dob">
+        </div>
+        <div class="field">
+          <label for="reg-pw">Password</label>
+          <div class="pw-wrap">
+            <input id="reg-pw" type="password" autocomplete="new-password" placeholder="Create a strong password" data-od-id="reg-password">
+            <button type="button" class="pw-toggle" aria-label="Show password" onclick="upahaar.ui.togglePw(this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="reg-face">Face photo <span class="hint">for emergency access</span></label>
+          <label class="dropzone" for="reg-face" data-od-id="reg-face-dropzone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+            Tap to upload a clear photo of your face
+          </label>
+          <input id="reg-face" type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="upahaar.ui.facePicked(this)">
+          <div class="face-name" id="face-name" hidden></div>
+        </div>
+        <button class="auth-submit" type="submit" id="register-submit" data-od-id="register-submit">Create your UPAHAAR</button>
+        <p class="auth-switch">Already have an account? <a class="text-link" href="#" data-od-id="go-login" onclick="upahaar.ui.openLogin();return false;">Sign in</a></p>
+      </form>
+
+      <div class="auth-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+        Protected by 2FA &amp; facial recognition
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ PROBLEM ══════════════════════ -->
+<section class="problem" id="problem" data-od-id="problem">
+  <div class="container">
+    <div class="problem-grid">
+      <div class="reveal-left">
+        <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17c3.9 0 7-2.5 7-5.5S15.9 6 12 6s-7 2.5-7 5.5 3.1 5.5 7 5.5Z"/><path d="M4 12h4"/><path d="m5 9.5-2.5.7"/><path d="m5 14.5-2.5-.7"/><path d="M20 12h-4"/><path d="m19 9.5 2.5.7"/><path d="m19 14.5 2.5-.7"/></svg>Why we built this</span>
+        <h2 class="section-title">Your health story shouldn't live in a shoebox</h2>
+        <p class="section-sub">
+          Healthcare still leans on fragmented physical records. During an emergency, the documents that decide your care
+          are often the ones you can't reach in time — or they're buried in a pile you never organized.
+        </p>
+        <div class="doc-cloud">
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>Prescriptions</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Diagnostic reports</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>Discharge summaries</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 1.8 4.6L18 8l-4.2 1.4L12 14l-1.8-4.6L6 8l4.2-1.4Z"/><path d="M19 14v6"/><path d="M16 17h6"/></svg>Vaccination records</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Allergies</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Family history</span>
+          <span class="doc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>Ongoing medications</span>
+        </div>
+      </div>
+
+      <div class="reveal-right">
+        <div class="before-card">
+          <span class="bc-tag">Before UPAHAAR</span>
+          <div class="scatter">
+            <div class="paper p1"><span class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></span><div class="p-t">Prescription</div><div class="p-d">14 Mar 2024</div></div>
+            <div class="paper p2"><span class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span><div class="p-t">ECG Report</div><div class="p-d">22 Jun 2024</div></div>
+            <div class="paper p3"><span class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 1.8 4.6L18 8l-4.2 1.4L12 14l-1.8-4.6L6 8l4.2-1.4Z"/></svg></span><div class="p-t">Vaccination</div><div class="p-d">08 Feb 2023</div></div>
+            <div class="paper p4"><span class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8"/><path d="M8 17h5"/></svg></span><div class="p-t">Discharge</div><div class="p-d">02 Sep 2024</div></div>
+          </div>
+        </div>
+
+        <div class="after-card" style="margin-top:20px">
+          <span class="bc-tag">With UPAHAAR</span>
+          <div class="tl-list">
+            <div class="tl-item">
+              <span class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></span>
+              <div><h4>AI clinical timeline</h4><p>Everything summarized into one readable history</p></div>
+            </div>
+            <div class="tl-line"></div>
+            <div class="tl-item">
+              <span class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></span>
+              <div><h4>Active medications</h4><p>Dosage, frequency and daily reminders</p></div>
+            </div>
+            <div class="tl-line"></div>
+            <div class="tl-item">
+              <span class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></span>
+              <div><h4>Vitals over time</h4><p>Blood pressure, heart rate and sugar trends</p></div>
+            </div>
+            <div class="tl-line"></div>
+            <div class="tl-item">
+              <span class="tl-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
+              <div><h4>Emergency access</h4><p>QR + facial recognition when seconds matter</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ HOW IT WORKS ══════════════════ -->
+<section class="how" id="how" data-od-id="how">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>How it works</span>
+      <h2 class="section-title">One wallet, three simple moves</h2>
+      <p class="section-sub">UPAHAAR is built so anyone — including the elderly — can manage their health records without friction.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal" style="transition-delay:.05s">
+        <span class="step-num">01</span>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg></span>
+        <h3>Store everything</h3>
+        <p>Snap a prescription and OCR converts it to text automatically. Reports, vaccinations, allergies and family history — all in one secure wallet.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:.12s">
+        <span class="step-num">02</span>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></span>
+        <h3>Understand instantly</h3>
+        <p>AI summarizes your whole history into a readable clinical timeline — medicines, dosages and trends — with the original text always one tap away.</p>
+      </div>
+      <div class="step reveal" style="transition-delay:.19s">
+        <span class="step-num">03</span>
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M6 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="m13.5 9.5 3-1.5"/><path d="m10.5 14.5-3 1.5"/></svg></span>
+        <h3>Share with doctors</h3>
+        <p>Send your profile to any doctor with one tap. You control access, you see every request, and you can revoke it at any moment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ FEATURES ══════════════════════ -->
+<section class="features" id="features" data-od-id="features">
+  <div class="container">
+    <div class="section-head center reveal">
+      <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.7a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3Z"/></svg>What's inside</span>
+      <h2 class="section-title">Everything your health needs, engineered in</h2>
+      <p class="section-sub">Every module is a working part of the UPAHAAR app — from your emergency card to AI that reads your records.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature reveal" data-od-id="feature-card-upahaar-card">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <h3>UPAHAAR Card</h3>
+        <p>Your digital medical identity — name, ID, blood group, allergies and QR code on one card, ready to present anywhere.</p>
+        <div class="f-extra">
+          <div class="mini-qr-card">
+            <div class="mq-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>UPAHAAR · Digital ID</div>
+            <div class="mq-body">
+              <div class="qr"><svg viewBox="0 0 29 29" fill="#0f172a"><rect width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="4" y="4" width="3" height="3" fill="#0f172a"/><rect x="18" y="0" width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="21" y="4" width="3" height="3" fill="#0f172a"/><rect x="0" y="18" width="11" height="11" rx="2" fill="#fff" stroke="#0f172a" stroke-width="1.2"/><rect x="4" y="21" width="3" height="3" fill="#0f172a"/><rect x="12" y="1" width="2.2" height="2.2" fill="#0f172a"/><rect x="14" y="6" width="2.2" height="2.2" fill="#0f172a"/><rect x="12" y="12" width="2.2" height="2.2" fill="#0f172a"/><rect x="12" y="20" width="2.2" height="2.2" fill="#0f172a"/><rect x="16" y="12" width="2.2" height="2.2" fill="#0f172a"/><rect x="21" y="15" width="2.2" height="2.2" fill="#0f172a"/><rect x="18" y="20" width="2.2" height="2.2" fill="#0f172a"/><rect x="22" y="22" width="2.2" height="2.2" fill="#0f172a"/><rect x="14" y="25" width="2.2" height="2.2" fill="#0f172a"/><rect x="21" y="25" width="1.6" height="1.6" fill="#0f172a"/></svg></div>
+              <div class="mq-info">
+                <div class="n">Aarav Sharma</div>
+                <div class="id">UPHR-2024-4587</div>
+                <span class="b">Blood · O+</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature reveal" style="transition-delay:.06s" data-od-id="feature-card-emergency-qr">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></span>
+        <h3>Emergency QR access</h3>
+        <p>Medics scan your card for instant timeline access — with a facial-recognition bypass so care isn't delayed by OTP logins.</p>
+      </div>
+
+      <div class="feature reveal" style="transition-delay:.12s" data-od-id="feature-card-prescription-scan">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg></span>
+        <h3>Smart prescription scanner</h3>
+        <p>OCR reads any prescription photo and AI extracts medicines, dosage and duration — your records stay organized without typing.</p>
+      </div>
+
+      <div class="feature reveal" data-od-id="feature-card-share-doctors">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M6 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="m13.5 9.5 3-1.5"/><path d="m10.5 14.5-3 1.5"/></svg></span>
+        <h3>Share with any doctor</h3>
+        <p>Send your profile in one tap, track exactly who accessed it, and revoke access instantly — consent is always in your hands.</p>
+      </div>
+
+      <div class="feature reveal" style="transition-delay:.06s" data-od-id="feature-card-vital-tracker">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg></span>
+        <h3>Vital tracker</h3>
+        <p>Log blood pressure, heart rate and sugar, and watch interactive graphs reveal trends your doctor will actually want to see.</p>
+        <div class="f-extra">
+          <div class="vital-chart" data-od-id="vital-mini-chart">
+            <div class="vc-tabs" role="tablist">
+              <button class="vc-tab active" data-series="bp" data-od-id="vc-bp">Blood pressure</button>
+              <button class="vc-tab" data-series="heart" data-od-id="vc-heart">Heart rate</button>
+              <button class="vc-tab" data-series="sugar" data-od-id="vc-sugar">Sugar</button>
+            </div>
+            <svg class="vc-svg" viewBox="0 0 300 92" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="currentColor" stop-opacity=".28"/>
+                  <stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <g class="vc-grid-lines" stroke="#e2e8f0" stroke-width="1">
+                <line x1="0" y1="18" x2="300" y2="18"/><line x1="0" y1="40" x2="300" y2="40"/><line x1="0" y1="62" x2="300" y2="62"/><line x1="0" y1="84" x2="300" y2="84"/>
+              </g>
+              <path id="vc-area" class="vc-area" d="" fill="url(#gradArea)"/>
+              <path id="vc-line" class="vc-line" d="" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <g id="vc-dots" fill="currentColor"></g>
+            </svg>
+            <div class="vc-val"><span id="vc-label">Latest reading</span><strong id="vc-value">122 / 82 mmHg</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature reveal" style="transition-delay:.12s" data-od-id="feature-card-ai-timeline">
+        <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></span>
+        <h3>AI clinical timeline</h3>
+        <p>Google AI contextualizes your entire history into a clear summary — and you can toggle the original text anytime you want proof.</p>
+      </div>
+    </div>
+
+    <div class="more-tags reveal">
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>Medication reminders</span>
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/></svg>Vaccine scheduler</span>
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Nearby pharmacy finder</span>
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Family medical history</span>
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Face-recognition access</span>
+      <span class="more-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Multilingual</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ SECURITY ══════════════════════ -->
+<section class="security" id="security" data-od-id="security">
+  <div class="container">
+    <div class="security-grid">
+      <div class="reveal-left">
+        <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>Security first</span>
+        <h2 class="section-title">Your records are yours. Only yours.</h2>
+        <p class="section-sub">
+          Health data is the most personal data there is. UPAHAAR is designed so every access is authorized, every login is
+          protected, and every share is reversible.
+        </p>
+        <div class="badge-row">
+          <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>AES-grade encryption</span>
+          <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Consent-based sharing</span>
+          <span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0Z"/><circle cx="12" cy="12" r="3"/></svg>Full access logs</span>
+        </div>
+      </div>
+      <div class="reveal-right">
+        <div class="sec-list">
+          <div class="sec-item" data-od-id="security-2fa">
+            <span class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <div><h4>Two-factor authentication</h4><p>Time-based one-time codes on every login — your wallet stays locked to you.</p></div>
+          </div>
+          <div class="sec-item" data-od-id="security-face">
+            <span class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg></span>
+            <div><h4>Emergency facial recognition</h4><p>In a crisis, a verified medical team can bypass OTP login via face recognition to reach your timeline — with a notification sent to you immediately.</p></div>
+          </div>
+          <div class="sec-item" data-od-id="security-consent">
+            <span class="s-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M6 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="m13.5 9.5 3-1.5"/><path d="m10.5 14.5-3 1.5"/></svg></span>
+            <div><h4>Revocable doctor access</h4><p>Every doctor request appears as a security alert. Acknowledge it or revoke it — and you're notified the moment anyone opens your profile.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ DOCTORS ══════════════════════ -->
+<section class="doctors" id="doctors" data-od-id="doctors">
+  <div class="container">
+    <div class="doctors-grid">
+      <div class="reveal-left">
+        <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>For doctors</span>
+        <h2 class="section-title">Built for the people who treat you</h2>
+        <p class="section-sub">
+          Instead of asking patients to dig through folders, doctors scan one card, request access, and get the full clinical
+          timeline — with the patient's explicit consent.
+        </p>
+        <div class="doctor-steps">
+          <div class="d-step"><span class="n">1</span><p><strong>Scan the UPAHAAR card</strong> — the patient's QR opens their public profile request.</p></div>
+          <div class="d-step"><span class="n">2</span><p><strong>Request access</strong> — the patient is notified instantly and approves or revokes.</p></div>
+          <div class="d-step"><span class="n">3</span><p><strong>Read the AI timeline</strong> — summaries, medications and vitals, with originals one tap away.</p></div>
+        </div>
+        <div class="hero-cta">
+          <button class="btn btn-primary" data-od-id="doctors-cta" onclick="upahaar.ui.forDoctors()">
+            Login as a doctor
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="reveal-right">
+        <div class="consent-card" data-od-id="doctor-consent-demo">
+          <div class="cc-head">
+            <span class="cc-avatar">Dr.</span>
+            <div>
+              <div class="who">Dr. Meera Nair</div>
+              <div class="meta">Cardiology · requested via facial recognition</div>
+            </div>
+            <span class="status">Awaiting your approval</span>
+          </div>
+          <div class="cc-body">
+            <div class="cc-row"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>Access requested</span><span class="cv">Clinical timeline</span></div>
+            <div class="cc-row"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Requested at</span><span class="cv">Today, 11:42</span></div>
+            <div class="cc-row"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>Data shared</span><span class="cv">Timeline · Meds · Allergies</span></div>
+          </div>
+          <div class="cc-actions">
+            <button class="btn btn-approve" data-od-id="doctor-approve">Approve access</button>
+            <button class="btn btn-revoke" data-od-id="doctor-revoke">Revoke</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ CTA ══════════════════════════ -->
+<section class="cta" data-od-id="cta">
+  <div class="container">
+    <div class="cta-band reveal">
+      <h2>Your entire health story, in one card.</h2>
+      <p>Stop carrying papers. Start carrying the whole story — securely, in your pocket, wherever care finds you.</p>
+      <div class="cta-actions">
+        <a class="btn btn-white" href="#auth" data-od-id="cta-primary" onclick="upahaar.ui.openRegister()">Create your UPAHAAR</a>
+        <a class="btn btn-ghost" style="border-color:rgba(255,255,255,.4);color:#fff;background:transparent" href="#features" data-od-id="cta-secondary">See all features</a>
+      </div>
+      <div class="cta-mini">Already registered? <a href="#auth" data-od-id="cta-login" onclick="upahaar.ui.openLogin()">Sign in</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ FOOTER ══════════════════════ -->
+<footer class="footer" data-od-id="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="f-brand-col">
+        <span class="footer-brand">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M24 4 8 10v13c0 9.2 6.4 16.8 16 21 9.6-4.2 16-11.8 16-21V10L24 4Z" fill="url(#lg-nav)"/><path d="M16.5 24h6V18h3v6h6v3h-6v6h-3v-6h-6v-3Z" fill="#fff"/></svg>
+          UPAHAAR
+        </span>
+        <p>Unified Permanent Account for Healthcare Access &amp; Authorization Registry. A smart digital medical wallet for a safer, simpler healthcare journey.</p>
+        <p class="footer-disclaimer" style="margin-top:16px">UPAHAAR is a demonstration project. It supports medical record organization and is not a substitute for professional medical advice or emergency services.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul class="footer-links">
+          <li><a href="#features" data-od-id="foot-features">Features</a></li>
+          <li><a href="#how" data-od-id="foot-how">How it works</a></li>
+          <li><a href="#doctors" data-od-id="foot-doctors">For doctors</a></li>
+          <li><a href="#security" data-od-id="foot-security">Security</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Account</h4>
+        <ul class="footer-links">
+          <li><a href="#auth" data-od-id="foot-signin" onclick="upahaar.ui.openLogin()">Sign in</a></li>
+          <li><a href="#auth" data-od-id="foot-register" onclick="upahaar.ui.openRegister()">Create account</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul class="footer-links">
+          <li><a href="#" data-od-id="foot-privacy">Privacy policy</a></li>
+          <li><a href="#" data-od-id="foot-terms">Terms of service</a></li>
+          <li><a href="#" data-od-id="foot-contact">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 UPAHAAR. All rights reserved.</span>
+      <span>Made for safe, human, accessible healthcare.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+
+  /* ── Navbar scroll state ── */
+  var nav = document.getElementById("nav");
+  function onScroll() { nav.classList.toggle("scrolled", window.scrollY > 20); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* ── Reveal on scroll ── */
+  var revealEls = document.querySelectorAll(".reveal, .reveal-left, .reveal-right");
+  if ("IntersectionObserver" in window && !reduceMotion) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.15, rootMargin: "0px 0px -8% 0px" });
+    revealEls.forEach(function (el) { io.observe(el); });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add("in"); });
+  }
+
+  /* ── Hero particle network ── */
+  (function particles() {
+    var canvas = document.getElementById("particles");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    var W, H, dots = [], DOT = 46;
+    function size() {
+      W = canvas.width = canvas.offsetWidth;
+      H = canvas.height = canvas.offsetHeight;
+    }
+    size();
+    window.addEventListener("resize", size);
+    function make() {
+      dots = [];
+      for (var i = 0; i < DOT; i++) {
+        dots.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35, r: Math.random() * 1.6 + 1 });
+      }
+    }
+    make();
+    if (reduceMotion) { drawStatic(); return; }
+    function drawStatic() {
+      ctx.clearRect(0, 0, W, H);
+      dots.forEach(function (d) { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fillStyle = "rgba(37,99,235,.28)"; ctx.fill(); });
+    }
+    var paused = false;
+    document.addEventListener("visibilitychange", function () { paused = document.hidden; });
+    function loop() {
+      if (paused) { requestAnimationFrame(loop); return; }
+      ctx.clearRect(0, 0, W, H);
+      for (var i = 0; i < dots.length; i++) {
+        var d = dots[i];
+        d.x += d.vx; d.y += d.vy;
+        if (d.x < 0 || d.x > W) d.vx *= -1;
+        if (d.y < 0 || d.y > H) d.vy *= -1;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(37,99,235,.30)"; ctx.fill();
+        for (var j = i + 1; j < dots.length; j++) {
+          var o = dots[j], dx = d.x - o.x, dy = d.y - o.y, dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(o.x, o.y);
+            ctx.strokeStyle = "rgba(37,99,235," + ((1 - dist / 110) * 0.16).toFixed(3) + ")";
+            ctx.lineWidth = 1; ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+
+  /* ── 3D tilt on the health card scene ── */
+  (function tilt3d() {
+    var scene = document.querySelector(".scene");
+    var tilt = document.querySelector(".tilt");
+    if (!scene || !tilt || !finePointer || reduceMotion) return;
+    var ROT = 10;
+    scene.addEventListener("pointermove", function (e) {
+      var r = scene.getBoundingClientRect();
+      var px = (e.clientX - r.left) / r.width - .5;
+      var py = (e.clientY - r.top) / r.height - .5;
+      tilt.style.setProperty("--ry", (px * ROT).toFixed(2) + "deg");
+      tilt.style.setProperty("--rx", (-py * ROT).toFixed(2) + "deg");
+    });
+    scene.addEventListener("pointerleave", function () {
+      tilt.style.setProperty("--rx", "0deg");
+      tilt.style.setProperty("--ry", "0deg");
+    });
+  })();
+
+  /* ── Auth UI ── */
+  var ui = {
+    state: { role: "citizen", mode: "login" },
+    els: {},
+    init: function () {
+      this.els.title = document.getElementById("auth-title");
+      this.els.subtitle = document.getElementById("auth-subtitle");
+      this.els.loginForm = document.getElementById("login-form");
+      this.els.registerForm = document.getElementById("register-form");
+      this.els.msg = document.getElementById("auth-msg");
+      this.els.roleTabs = document.querySelectorAll(".role-tab");
+      this.els.faceName = document.getElementById("face-name");
+
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem("upahaar_auth_ui") || "null"); } catch (err) {}
+      if (saved && saved.role) this.state = saved;
+
+      var self = this;
+      this.els.roleTabs.forEach(function (t) {
+        t.addEventListener("click", function () { self.setRole(t.dataset.role); });
+      });
+      this.els.loginForm.addEventListener("submit", function (e) { self.submitLogin(e); });
+      this.els.registerForm.addEventListener("submit", function (e) { self.submitRegister(e); });
+
+      var me = this;
+      ["login-id", "login-pw", "login-otp", "reg-name", "reg-email", "reg-phone", "reg-dob", "reg-pw"]
+        .forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.addEventListener("input", function () { me.persist(); });
+        });
+
+      if (this.state.mode === "register") this.openRegister(); else this.openLogin();
+      if (this.state.role === "doctor") this.setRole("doctor");
+    },
+    persist: function () {
+      var val = {};
+      ["login-id", "login-pw", "login-otp", "reg-name", "reg-email", "reg-phone", "reg-dob", "reg-pw"]
+        .forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el && el.value) val[id] = el.value;
+        });
+      try { localStorage.setItem("upahaar_auth_ui", JSON.stringify({ role: this.state.role, mode: this.state.mode, fields: val })); } catch (err) {}
+    },
+    setRole: function (role) {
+      this.state.role = role;
+      this.els.roleTabs.forEach(function (t) {
+        var on = t.dataset.role === role;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      this.updateHeadings();
+      this.persist();
+    },
+    updateHeadings: function () {
+      var d = this.state.role === "doctor";
+      this.els.title.textContent = this.state.mode === "login"
+        ? (d ? "Welcome back, Doctor" : "Welcome back")
+        : (d ? "Create a doctor account" : "Create your account");
+      this.els.subtitle.textContent = this.state.mode === "login"
+        ? (d ? "Access your patients' records securely" : "Access your digital health records")
+        : (d ? "Join UPAHAAR as a verified practitioner" : "Start your secure digital medical wallet");
+      var id = this.state.role === "doctor" ? "Doctor ID or Email" : "UPAHAAR ID or Email";
+      var idInput = document.getElementById("login-id");
+      var lab = document.querySelector('label[for="login-id"]');
+      if (lab && idInput) { lab.childNodes[0].textContent = id + " "; idInput.placeholder = this.state.role === "doctor" ? "Registered doctor email" : "UPHR-1234567890 or you@email.com"; }
+    },
+    openLogin: function () {
+      this.state.mode = "login";
+      this.els.loginForm.hidden = false;
+      this.els.registerForm.hidden = true;
+      this.hideMsg();
+      this.updateHeadings();
+      this.persist();
+    },
+    openRegister: function () {
+      this.state.mode = "register";
+      this.els.loginForm.hidden = true;
+      this.els.registerForm.hidden = false;
+      this.hideMsg();
+      this.updateHeadings();
+      this.persist();
+    },
+    togglePw: function (btn) {
+      var input = btn.previousElementSibling;
+      if (input && input.type === "password") { input.type = "text"; }
+      else if (input) { input.type = "password"; }
+    },
+    facePicked: function (input) {
+      if (input.files && input.files[0]) {
+        this.els.faceName.textContent = "Selected: " + input.files[0].name;
+        this.els.faceName.hidden = false;
+      }
+    },
+    showMsg: function (type, text) {
+      this.els.msg.className = "auth-msg show " + type;
+      this.els.msg.innerHTML = (type === "err"
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>')
+        + "<span>" + text + "</span>"
+        + '<button class="reset-demo" type="button" onclick="upahaar.ui.resetDemo()">Try again</button>';
+    },
+    hideMsg: function () { this.els.msg.className = "auth-msg"; },
+    resetDemo: function () {
+      this.els.msg.className = "auth-msg";
+      ["login-id", "login-pw", "login-otp", "reg-name", "reg-email", "reg-phone", "reg-dob", "reg-pw"]
+        .forEach(function (id) { var el = document.getElementById(id); if (el) el.value = ""; });
+      try { localStorage.removeItem("upahaar_auth_ui"); } catch (err) {}
+    },
+    submitLogin: function (e) {
+      e.preventDefault();
+      var id = document.getElementById("login-id");
+      var pw = document.getElementById("login-pw");
+      if (!id.value.trim() || !pw.value) {
+        this.showMsg("err", "Please enter your " + (this.state.role === "doctor" ? "doctor ID" : "UPAHAAR ID") + " and password.");
+        return;
+      }
+      var role = this.state.role === "doctor" ? "doctor" : "citizen";
+      window.location.href = "/auth/" + role + "/login";
+    },
+    submitRegister: function (e) {
+      e.preventDefault();
+      var role = this.state.role === "doctor" ? "doctor" : "citizen";
+      window.location.href = "/auth/" + role + "/register";
+    },
+    forDoctors: function () {
+      window.location.href = "/auth/doctor/login";
+    }
+  };
+
+  window.upahaar = { ui: ui };
+  ui.init();
+
+  /* ── Mini vital chart ── */
+  (function vitals() {
+    var data = {
+      bp: {
+        label: "Latest blood pressure",
+        value: "122 / 82 mmHg",
+        series: [
+          { name: "Systolic", color: "#ef4444", pts: [[0,38],[40,30],[80,34],[120,26],[160,30],[200,24],[240,28],[300,20]] },
+          { name: "Diastolic", color: "#3b82f6", pts: [[0,66],[40,60],[80,63],[120,56],[160,59],[200,53],[240,56],[300,52]] }
+        ]
+      },
+      heart: {
+        label: "Latest heart rate",
+        value: "72 bpm",
+        series: [
+          { name: "BPM", color: "#ec4899", pts: [[0,34],[40,20],[80,26],[120,14],[160,22],[200,10],[240,18],[300,8]] }
+        ]
+      },
+      sugar: {
+        label: "Latest sugar level",
+        value: "98 mg/dL",
+        series: [
+          { name: "Glucose", color: "#d97706", pts: [[0,52],[40,44],[80,48],[120,38],[160,42],[200,32],[240,36],[300,28]] }
+        ]
+      }
+    };
+    var svg = document.querySelector(".vc-svg");
+    var area = document.getElementById("vc-area");
+    var line = document.getElementById("vc-line");
+    var dots = document.getElementById("vc-dots");
+    var valEl = document.getElementById("vc-value");
+    var labelEl = document.getElementById("vc-label");
+    var tabs = document.querySelectorAll(".vc-tab");
+    if (!svg || !line) return;
+    function draw(seriesArr, animate) {
+      var paths = seriesArr.map(function (s) {
+        var d = "M" + s.pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
+        var last = s.pts[s.pts.length - 1];
+        var ad = d + " L" + last[0] + " 92 L" + s.pts[0][0] + " 92 Z";
+        return { s: s, d: d, ad: ad, last: last };
+      });
+      var tl = paths[0].s.color;
+      svg.style.color = tl;
+      area.setAttribute("fill", "url(#gradArea)");
+      area.setAttribute("d", paths.map(function (p) { return p.ad; }).join(" "));
+      line.setAttribute("d", paths.map(function (p) { return p.d; }).join(" "));
+      line.setAttribute("stroke", tl);
+      dots.innerHTML = "";
+      paths.forEach(function (p) {
+        var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("fill", p.s.color);
+        p.s.pts.forEach(function (pt) {
+          var c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          c.setAttribute("cx", pt[0]); c.setAttribute("cy", pt[1]); c.setAttribute("r", 3.2);
+          g.appendChild(c);
+        });
+        dots.appendChild(g);
+      });
+      if (animate && !reduceMotion) {
+        var L = line.getTotalLength();
+        line.style.transition = "none";
+        line.style.strokeDasharray = L;
+        line.style.strokeDashoffset = L;
+        void line.getBoundingClientRect();
+        line.style.transition = "stroke-dashoffset 900ms var(--ease)";
+        line.style.strokeDashoffset = 0;
+      } else {
+        line.style.strokeDashoffset = 0;
+      }
+    }
+    function activate(key) {
+      var d = data[key];
+      valEl.textContent = d.value;
+      labelEl.textContent = d.label;
+      draw(d.series, true);
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        tabs.forEach(function (x) { x.classList.toggle("active", x === t); });
+        activate(t.dataset.series);
+      });
+    });
+    activate("bp");
+  })();
+
+  /* ── Doctor consent demo buttons ── */
+  (function consent() {
+    var approve = document.querySelector("[data-od-id='doctor-approve']");
+    var revoke = document.querySelector("[data-od-id='doctor-revoke']");
+    var status = document.querySelector(".cc-head .status");
+    if (!approve || !status) return;
+    function set(text, cls) {
+      status.textContent = text;
+      status.style.background = cls;
+      status.style.color = "";
+    }
+    approve.addEventListener("click", function () {
+      set("Access granted", "#dcfce7");
+    });
+    revoke.addEventListener("click", function () {
+      set("Access revoked", "#fee2e2");
+    });
+  })();
+})();
+</script>
+</body>
+</html>
