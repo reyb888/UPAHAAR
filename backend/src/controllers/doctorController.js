@@ -34,6 +34,14 @@ export const scanPatientQr = (req, res) => {
                 db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [patient.id], (err, vitals) => {
                     if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
 
+                    // Log the access event
+                    const logId = uuidv4();
+                    db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
+                        [logId, patient.id, doctorId, 'QR_SCAN', 'PENDING'], (logErr) => {
+                            if (logErr) console.error("Failed to log access event:", logErr);
+                        }
+                    );
+
                     res.json({
                         patient,
                         timeline: prescriptions,
