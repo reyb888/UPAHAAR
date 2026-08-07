@@ -483,6 +483,73 @@ section { scroll-margin-top: 84px; }
 .footer-bottom { border-top: 1px solid rgba(255,255,255,.1); padding: 22px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13.5px; color: #94a3b8; }
 .footer-disclaimer { font-size: 12.5px; color: #64748b; max-width: 64ch; }
 
+/* ── Dropdowns ───────────────────────────────────────────── */
+.dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  box-shadow: var(--elev-2);
+  z-index: 100;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+}
+.dropdown-menu.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--fg-2) !important;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+  text-align: left;
+}
+.dropdown-item:hover {
+  background: var(--bg);
+  color: var(--accent) !important;
+}
+.dropdown-item svg {
+  width: 16px;
+  height: 16px;
+  color: var(--meta);
+  transition: color var(--motion-fast) var(--ease);
+}
+.dropdown-item:hover svg {
+  color: var(--accent);
+}
+
+.nav-actions .dropdown-menu {
+  left: auto;
+  right: 0;
+  transform: translateY(8px) scale(0.96);
+}
+.nav-actions .dropdown-menu.active {
+  transform: translateY(0) scale(1);
+}
+
+
 @media (max-width: 1080px) {
   .hero-grid { grid-template-columns: 1fr; gap: 64px; }
   .scene { order: 2; max-width: 520px; margin: 0 auto; }
@@ -533,8 +600,20 @@ section { scroll-margin-top: 84px; }
       <a href="#doctors" data-od-id="nav-doctors">For doctors</a>
     </nav>
     <div class="nav-actions">
-      <a class="nav-signin" href="/auth/citizen/login" data-od-id="nav-signin">Sign in</a>
-      <a class="btn btn-primary" href="/auth/citizen/register" data-od-id="nav-cta">Get started</a>
+      <div class="dropdown-wrap">
+        <a class="nav-signin" href="#" data-od-id="nav-signin" data-dropdown-trigger>Sign in</a>
+        <div class="dropdown-menu">
+          <a class="dropdown-item" href="/auth/citizen/login">As Citizen</a>
+          <a class="dropdown-item" href="/auth/doctor/login">As Doctor</a>
+        </div>
+      </div>
+      <div class="dropdown-wrap">
+        <a class="btn btn-primary" href="#" data-od-id="nav-cta" data-dropdown-trigger>Get started</a>
+        <div class="dropdown-menu">
+          <a class="dropdown-item" href="/auth/citizen/register">As Citizen</a>
+          <a class="dropdown-item" href="/auth/doctor/register">As Doctor</a>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -556,10 +635,16 @@ section { scroll-margin-top: 84px; }
         or organized in one secure wallet you carry everywhere. UPAHAAR keeps your entire medical history one tap away.
       </p>
       <div class="hero-cta reveal in" style="transition-delay:.15s">
-        <a class="btn btn-primary" href="/auth/citizen/register" data-od-id="hero-cta-primary">
-          Create your UPAHAAR
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </a>
+        <div class="dropdown-wrap">
+          <a class="btn btn-primary" href="#" data-od-id="hero-cta-primary" data-dropdown-trigger>
+            Create your UPAHAAR
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/auth/citizen/register">As Citizen</a>
+            <a class="dropdown-item" href="/auth/doctor/register">As Doctor</a>
+          </div>
+        </div>
         <a class="btn btn-ghost" href="#features" data-od-id="hero-cta-secondary">Explore features</a>
       </div>
       <div class="hero-trust reveal in" style="transition-delay:.2s">
@@ -917,10 +1002,24 @@ section { scroll-margin-top: 84px; }
       <h2>Your entire health story, in one card.</h2>
       <p>Stop carrying papers. Start carrying the whole story — securely, in your pocket, wherever care finds you.</p>
       <div class="cta-actions">
-        <a class="btn btn-white" href="/auth/citizen/register" data-od-id="cta-primary">Create your UPAHAAR</a>
+        <div class="dropdown-wrap">
+          <a class="btn btn-white" href="#" data-od-id="cta-primary" data-dropdown-trigger>Create your UPAHAAR</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/auth/citizen/register">As Citizen</a>
+            <a class="dropdown-item" href="/auth/doctor/register">As Doctor</a>
+          </div>
+        </div>
         <a class="btn btn-ghost" style="border-color:rgba(255,255,255,.4);color:#fff;background:transparent" href="#features" data-od-id="cta-secondary">See all features</a>
       </div>
-      <div class="cta-mini">Already registered? <a href="/auth/citizen/login" data-od-id="cta-login">Sign in</a></div>
+      <div class="cta-mini">Already registered? 
+        <div class="dropdown-wrap">
+          <a href="#" data-od-id="cta-login" data-dropdown-trigger>Sign in</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/auth/citizen/login">As Citizen</a>
+            <a class="dropdown-item" href="/auth/doctor/login">As Doctor</a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -949,8 +1048,24 @@ section { scroll-margin-top: 84px; }
       <div>
         <h4>Account</h4>
         <ul class="footer-links">
-          <li><a href="/auth/citizen/login" data-od-id="foot-signin">Sign in</a></li>
-          <li><a href="/auth/citizen/register" data-od-id="foot-register">Create account</a></li>
+          <li>
+            <div class="dropdown-wrap">
+              <a href="#" data-od-id="foot-signin" data-dropdown-trigger>Sign in</a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="/auth/citizen/login">As Citizen</a>
+                <a class="dropdown-item" href="/auth/doctor/login">As Doctor</a>
+              </div>
+            </div>
+          </li>
+          <li>
+            <div class="dropdown-wrap">
+              <a href="#" data-od-id="foot-register" data-dropdown-trigger>Create account</a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item" href="/auth/citizen/register">As Citizen</a>
+                <a class="dropdown-item" href="/auth/doctor/register">As Doctor</a>
+              </div>
+            </div>
+          </li>
         </ul>
       </div>
       <div>
@@ -1168,6 +1283,33 @@ section { scroll-margin-top: 84px; }
       set("Access revoked", "#fee2e2");
     });
   })();
+
+  /* ── Dropdowns handler ── */
+  document.querySelectorAll("[data-dropdown-trigger]").forEach(function(trigger) {
+    trigger.addEventListener("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Close all other dropdowns
+      document.querySelectorAll(".dropdown-menu").forEach(function(menu) {
+        if (menu !== trigger.nextElementSibling) {
+          menu.classList.remove("active");
+        }
+      });
+      
+      var menu = trigger.nextElementSibling;
+      if (menu && menu.classList.contains("dropdown-menu")) {
+        menu.classList.toggle("active");
+      }
+    });
+  });
+  
+  // Close dropdowns on outside click
+  document.addEventListener("click", function() {
+    document.querySelectorAll(".dropdown-menu").forEach(function(menu) {
+      menu.classList.remove("active");
+    });
+  });
 })();
 </script>
 </body>
