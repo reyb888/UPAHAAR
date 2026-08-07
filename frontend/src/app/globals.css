@@ -97,7 +97,7 @@ body {
     background-color: #2a3942 !important;
 }
 
-.dark .bg-gray-50/50 {
+.dark .bg-gray-50\/50 {
     background-color: #111b21 !important;
 }
 
@@ -138,7 +138,7 @@ body {
     color: #f87171 !important;
 }
 
-.dark .bg-red-100/50 {
+.dark .bg-red-100\/50 {
     background-color: rgba(85, 26, 32, 0.5) !important;
 }
 
@@ -146,7 +146,7 @@ body {
     border-color: #551a20 !important;
 }
 
-.dark .bg-gradient-to-r.from-medical-blue.to-blue-600 {
+.dark [class*="bg-gradient-to-r"][class*="from-medical-blue"] {
     background-image: linear-gradient(to right, #1f2c34, #202c33) !important;
     border: 1px solid #222e35;
 }
