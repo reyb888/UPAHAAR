@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Users, CheckCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, Users, CheckCircle, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CitizenRegister() {
@@ -25,6 +25,10 @@ export default function CitizenRegister() {
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   const passwordRules = [
     { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
@@ -79,6 +83,10 @@ export default function CitizenRegister() {
     if (pwError) {
       setPasswordError(pwError);
       setPasswordTouched(true);
+      return;
+    }
+    if (formData.password !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match.');
       return;
     }
     setIsLoading(true);
@@ -221,22 +229,33 @@ export default function CitizenRegister() {
 
             <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-semibold text-gray-700">Secure Password</label>
-              <input 
-                type="password" required
-                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50 ${
-                  passwordTouched && passwordError ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
-                }`}
-                placeholder="••••••••"
-                onChange={e => {
-                  const val = e.target.value;
-                  setFormData({...formData, password: val});
-                  if (passwordTouched) setPasswordError(validatePassword(val));
-                }}
-                onBlur={e => {
-                  setPasswordTouched(true);
-                  setPasswordError(validatePassword(e.target.value));
-                }}
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? 'text' : 'password'} required
+                  className={`w-full px-4 py-3 pr-12 rounded-xl border focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50 ${
+                    passwordTouched && passwordError ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                  }`}
+                  placeholder="••••••••"
+                  onChange={e => {
+                    const val = e.target.value;
+                    setFormData({...formData, password: val});
+                    if (passwordTouched) setPasswordError(validatePassword(val));
+                    if (confirmPassword) setConfirmPasswordError(val !== confirmPassword ? 'Passwords do not match.' : null);
+                  }}
+                  onBlur={e => {
+                    setPasswordTouched(true);
+                    setPasswordError(validatePassword(e.target.value));
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
               {/* Password requirements checklist */}
               {(passwordTouched || formData.password.length > 0) && (
@@ -259,10 +278,40 @@ export default function CitizenRegister() {
                 </div>
               )}
 
-              {/* Inline error message */}
+              {/* Inline password error */}
               {passwordTouched && passwordError && (
                 <p className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                   <XCircle size={13} className="shrink-0" /> {passwordError}
+                </p>
+              )}
+
+              {/* Confirm Password */}
+              <label className="text-sm font-semibold text-gray-700 block mt-4">Confirm Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'} required
+                  className={`w-full px-4 py-3 pr-12 rounded-xl border focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50 ${
+                    confirmPasswordError ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                  }`}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={e => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError(e.target.value !== formData.password ? 'Passwords do not match.' : null);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {confirmPasswordError && (
+                <p className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
+                  <XCircle size={13} className="shrink-0" /> {confirmPasswordError}
                 </p>
               )}
             </div>
