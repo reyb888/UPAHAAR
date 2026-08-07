@@ -36,9 +36,11 @@ export const scanPatientQr = (req, res) => {
 
                     // Log the access event
                     const logId = uuidv4();
+                    console.log(`[ACCESS_LOG] Inserting: logId=${logId}, citizen_id=${patient.id}, doctor_id=${doctorId}, method=QR_SCAN`);
                     db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
                         [logId, patient.id, doctorId, 'QR_SCAN', 'PENDING'], (logErr) => {
-                            if (logErr) console.error("Failed to log access event:", logErr);
+                            if (logErr) console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                            else console.log(`[ACCESS_LOG] Successfully inserted access log: ${logId}`);
                         }
                     );
 
