@@ -342,7 +342,7 @@ export default function CitizenSettings() {
                               No doctor access logs found.
                             </div>
                           ) : (
-                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                               {notifications.map((log) => (
                                 <div key={log.id} className="bg-gray-50 dark:bg-slate-900 p-4 rounded-2xl border border-gray-200/60 shadow-sm flex flex-col gap-3">
                                   <div className="flex justify-between items-start">
@@ -350,6 +350,9 @@ export default function CitizenSettings() {
                                       <h4 className="font-bold text-gray-800 dark:text-white text-sm">
                                         Dr. {log.doctor_name}
                                       </h4>
+                                      <p className="text-xs text-gray-500 mt-0.5">
+                                        UPAHAAR ID: <span className="font-mono font-semibold text-gray-750 dark:text-gray-300">{log.doctor_upahaar_id || 'N/A'}</span>
+                                      </p>
                                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                         <Eye size={12} /> Accessed via {log.method}
                                       </p>
@@ -365,24 +368,29 @@ export default function CitizenSettings() {
                                     </span>
                                   </div>
                                   
-                                  <div className="flex items-center justify-between text-[11px] text-gray-400">
-                                    <span>{new Date(log.created_at).toLocaleString()}</span>
+                                  <div className="flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-250/20 pt-2">
+                                    <span className="flex items-center gap-1"><Clock size={11} /> {new Date(log.created_at).toLocaleString()}</span>
                                     
-                                    {log.status === 'PENDING' && (
-                                      <div className="flex gap-2 shrink-0">
-                                        <button 
-                                          onClick={() => handleNotificationAction(log.id, 'acknowledge')}
-                                          className="px-2.5 py-1 bg-green-100 text-green-700 hover:bg-green-200 font-bold rounded-lg transition-colors flex items-center gap-1 text-[11px]"
-                                        >
-                                          <CheckCircle2 size={12}/> Acknowledge
-                                        </button>
+                                    {log.status !== 'REVOKED' ? (
+                                      <div className="flex gap-1.5 shrink-0">
+                                        {log.status === 'PENDING' && (
+                                          <button 
+                                            onClick={() => handleNotificationAction(log.id, 'acknowledge')}
+                                            className="px-2.5 py-1 bg-green-100 text-green-700 hover:bg-green-200 font-bold rounded-lg transition-colors flex items-center gap-1 text-[11px]"
+                                          >
+                                            <CheckCircle2 size={12}/> Acknowledge
+                                          </button>
+                                        )}
                                         <button 
                                           onClick={() => handleNotificationAction(log.id, 'revoke')}
                                           className="px-2.5 py-1 bg-red-600 text-white hover:bg-red-700 font-bold rounded-lg transition-colors flex items-center gap-1 text-[11px]"
+                                          title="Terminate profile access rights for this doctor"
                                         >
-                                          <Ban size={12}/> Revoke
+                                          <Ban size={12}/> Terminate Access
                                         </button>
                                       </div>
+                                    ) : (
+                                      <span className="text-red-500 font-semibold italic text-[11px]">Access Terminated</span>
                                     )}
                                   </div>
                                 </div>

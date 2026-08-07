@@ -320,7 +320,7 @@ export const getNearbyPharmacies = async (req, res) => {
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;
     db.all(`
-        SELECT a.id, a.method, a.status, a.created_at, u.full_name as doctor_name
+        SELECT a.id, a.method, a.status, a.created_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
         FROM access_logs a
         JOIN users u ON a.doctor_id = u.id
         WHERE a.citizen_id = ?
