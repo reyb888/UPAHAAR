@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
+import crypto from 'crypto';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 
 
 const generateUpahaarID = () => {
@@ -145,3 +147,118 @@ export const verifyAndEnable2FA = (req, res) => {
         }
     });
 };
+
+// Helper: mask email for privacy (e.g. "r***e@gmail.com")
+const maskEmail = (email) => {
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 2) return `${localPart[0]}***@${domain}`;
+    return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`;
+};
+
+export const forgotPassword = (req, res) => {
+    const { upahaar_id } = req.body;
+
+    if (!upahaar_id) {
+        return res.status(400).json({ message: 'UPAHAAR ID is required' });
+    }
+
+    db.get(`SELECT id, email, full_name FROM users WHERE upahaar_id = ?`, [upahaar_id], async (err, user) => {
+        if (err || !user) {
+            return res.status(404).json({ message: 'No account found with this UPAHAAR ID' });
+        }
+
+        // Generate 6-digit OTP
+        const otpCode = crypto.randomInt(100000, 999999).toString();
+        const id = uuidv4();
+
+        // Expires in 10 minutes
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+        // Invalidate any previous unused tokens for this user
+        db.run(`UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0`, [user.id], (invalidateErr) => {
+            if (invalidateErr) console.error('Error invalidating old tokens:', invalidateErr.message);
+
+            // Store new token
+            db.run(
+                `INSERT INTO password_reset_tokens (id, user_id, otp_code, expires_at) VALUES (?, ?, ?, ?)`,
+                [id, user.id, otpCode, expiresAt],
+                async (insertErr) => {
+                    if (insertErr) {
+                        console.error('Error storing OTP:', insertErr.message);
+                        return res.status(500).json({ message: 'Failed to generate reset code' });
+                    }
+
+                    // Send email
+                    const emailSent = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
+
+                    if (emailSent) {
+                        res.json({
+                            message: 'Verification code sent to your registered email',
+                            masked_email: maskEmail(user.email)
+                        });
+                    } else {
+                        res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+                    }
+                }
+            );
+        });
+    });
+};
+
+export const resetPassword = (req, res) => {
+    const { upahaar_id, otp_code, new_password } = req.body;
+
+    if (!upahaar_id || !otp_code || !new_password) {
+        return res.status(400).json({ message: 'UPAHAAR ID, OTP code, and new password are required' });
+    }
+
+    if (new_password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Find the user
+    db.get(`SELECT id FROM users WHERE upahaar_id = ?`, [upahaar_id], (err, user) => {
+        if (err || !user) {
+            return res.status(404).json({ message: 'No account found with this UPAHAAR ID' });
+        }
+
+        // Find the matching OTP
+        db.get(
+            `SELECT * FROM password_reset_tokens WHERE user_id = ? AND otp_code = ? AND used = 0 ORDER BY created_at DESC LIMIT 1`,
+            [user.id, otp_code],
+            async (tokenErr, token) => {
+                if (tokenErr || !token) {
+                    return res.status(400).json({ message: 'Invalid or expired verification code' });
+                }
+
+                // Check expiry
+                if (new Date() > new Date(token.expires_at)) {
+                    // Mark as used so it can't be retried
+                    db.run(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`, [token.id]);
+                    return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+                }
+
+                // Hash new password and update
+                try {
+                    const salt = await bcrypt.genSalt(10);
+                    const password_hash = await bcrypt.hash(new_password, salt);
+
+                    db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [password_hash, user.id], (updateErr) => {
+                        if (updateErr) {
+                            return res.status(500).json({ message: 'Failed to update password' });
+                        }
+
+                        // Mark OTP as used
+                        db.run(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`, [token.id]);
+
+                        res.json({ message: 'Password reset successfully! You can now login with your new password.' });
+                    });
+                } catch (hashError) {
+                    console.error('Password hashing error:', hashError);
+                    res.status(500).json({ message: 'Server error during password reset' });
+                }
+            }
+        );
+    });
+};
+

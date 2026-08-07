@@ -76,6 +76,11 @@ export default function CitizenLogin() {
                 placeholder="••••••••"
                 onChange={e => setCredentials({...credentials, password: e.target.value})}
               />
+              <div className="text-right">
+                <Link href="/auth/citizen/forgot-password" className="text-xs text-medical-blue font-semibold hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Authenticator Code</label>

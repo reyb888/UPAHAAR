@@ -154,5 +154,16 @@ export const initializeDB = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
     
+    // Password Reset Tokens Table
+    await runCreate(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        otp_code TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
+
     console.log('Database tables verified/created.');
 };
