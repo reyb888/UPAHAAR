@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Phone, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import CitizenSidebar from '../../../components/CitizenSidebar';
 
 export default function CitizenQRCard() {
   const [profile, setProfile] = useState<any>(null);
@@ -70,8 +71,10 @@ export default function CitizenQRCard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      <CitizenSidebar activePage="qr-card" />
+      <div className="flex-1 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="max-w-md w-full space-y-8">
         
         <div className="text-center">
           <Link href="/dashboard/citizen" className="text-sm font-bold text-medical-blue hover:underline mb-4 inline-block">&larr; Back to Dashboard</Link>
@@ -173,7 +176,6 @@ export default function CitizenQRCard() {
           </div>
 
         </motion.div>
-
       </div>
     </div>
   );

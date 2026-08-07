@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import CitizenSidebar from '../../../components/CitizenSidebar';
 
 export default function CitizenSettings() {
   const router = useRouter();
@@ -171,27 +172,7 @@ export default function CitizenSettings() {
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row transition-colors duration-300">
       
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-medical-dark text-white p-6 flex flex-col min-h-[10vh] md:min-h-screen justify-between shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold mb-8">UPAHAAR</h2>
-          <nav className="space-y-4">
-            <Link href="/dashboard/citizen" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-              <Clock size={20} /> My Timeline
-            </Link>
-            <Link href="/dashboard/citizen/qr-card" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-              <QrCode size={20} /> My QR Card
-            </Link>
-            <Link href="/dashboard/citizen/vitals" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-              <Activity size={20} /> Vital Tracker
-            </Link>
-          </nav>
-        </div>
-        <div className="mt-auto pt-6 border-t border-white/10">
-          <Link href="/dashboard/citizen/settings" className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold text-white">
-            <Settings size={20} /> Settings
-          </Link>
-        </div>
-      </aside>
+      <CitizenSidebar activePage="settings" />
 
       {/* Main Settings Panel */}
       <main className="flex-1 p-6 lg:p-10 flex justify-center">
