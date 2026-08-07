@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Users, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Users, CheckCircle, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CitizenRegister() {
@@ -22,6 +22,24 @@ export default function CitizenRegister() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const passwordRules = [
+    { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+    { label: 'At least one uppercase letter (A-Z)', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'At least one lowercase letter (a-z)', test: (p: string) => /[a-z]/.test(p) },
+    { label: 'At least one number (0-9)', test: (p: string) => /[0-9]/.test(p) },
+    { label: 'At least one special character (!@#$...)', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  ];
+
+  const validatePassword = (pw: string): string | null => {
+    for (const rule of passwordRules) {
+      if (!rule.test(pw)) return `Password must meet all requirements below.`;
+    }
+    return null;
+  };
 
   const getBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -56,6 +74,13 @@ export default function CitizenRegister() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
+    const pwError = validatePassword(formData.password);
+    if (pwError) {
+      setPasswordError(pwError);
+      setPasswordTouched(true);
+      return;
+    }
     setIsLoading(true);
     try {
       let face_photo_url: string | null = null;
@@ -90,11 +115,11 @@ export default function CitizenRegister() {
         }
         setSuccessId(data.upahaar_id);
       } else {
-        alert(`Error: ${data.message}`);
+        setSubmitError(data.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to connect to the backend server. Is it running on port 5000?');
+      setSubmitError('Failed to connect to the backend server. Is it running on port 5000?');
     } finally {
       setIsLoading(false);
     }
@@ -198,10 +223,48 @@ export default function CitizenRegister() {
               <label className="text-sm font-semibold text-gray-700">Secure Password</label>
               <input 
                 type="password" required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50"
+                className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50 ${
+                  passwordTouched && passwordError ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                }`}
                 placeholder="••••••••"
-                onChange={e => setFormData({...formData, password: e.target.value})}
+                onChange={e => {
+                  const val = e.target.value;
+                  setFormData({...formData, password: val});
+                  if (passwordTouched) setPasswordError(validatePassword(val));
+                }}
+                onBlur={e => {
+                  setPasswordTouched(true);
+                  setPasswordError(validatePassword(e.target.value));
+                }}
               />
+
+              {/* Password requirements checklist */}
+              {(passwordTouched || formData.password.length > 0) && (
+                <div className="mt-2 space-y-1 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">Password must include:</p>
+                  {passwordRules.map((rule, i) => {
+                    const met = rule.test(formData.password);
+                    return (
+                      <div key={i} className={`flex items-center gap-2 text-xs transition-colors ${
+                        met ? 'text-green-600' : 'text-gray-400'
+                      }`}>
+                        {met
+                          ? <CheckCircle2 size={13} className="text-green-500 shrink-0" />
+                          : <XCircle size={13} className="text-gray-300 shrink-0" />
+                        }
+                        {rule.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Inline error message */}
+              {passwordTouched && passwordError && (
+                <p className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
+                  <XCircle size={13} className="shrink-0" /> {passwordError}
+                </p>
+              )}
             </div>
           </div>
 
@@ -324,6 +387,14 @@ export default function CitizenRegister() {
               {formData.face_photo && <p className="mt-2 text-sm text-green-600 font-medium">Selected: {formData.face_photo.name}</p>}
             </div>
           </div>
+
+          {/* Server-side error */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <XCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-600 font-medium">{submitError}</p>
+            </div>
+          )}
 
           <motion.button 
             whileHover={{ scale: 1.02 }}
