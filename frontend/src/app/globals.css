@@ -47,3 +47,112 @@ body {
     outline: none;
     cursor: pointer;
 }
+
+/* Dark mode base styles */
+.dark body {
+    background-color: #0b141a !important; /* Premium dark background like WhatsApp web dark mode */
+    color: #e9edef !important;
+}
+
+.dark .bg-gray-50 {
+    background-color: #0b141a !important;
+}
+
+.dark .bg-white {
+    background-color: #111b21 !important;
+    color: #e9edef !important;
+}
+
+.dark .text-gray-900 {
+    color: #f1f5f9 !important;
+}
+
+.dark .text-gray-800, .dark h1, .dark h2, .dark h3, .dark h4 {
+    color: #e9edef !important;
+}
+
+.dark .text-gray-700 {
+    color: #d1d7db !important;
+}
+
+.dark .text-gray-600 {
+    color: #8696a0 !important;
+}
+
+.dark .text-gray-500 {
+    color: #8696a0 !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+    border-color: #222e35 !important;
+}
+
+.dark .bg-gray-100 {
+    background-color: #202c33 !important;
+}
+
+.dark .bg-gray-200 {
+    background-color: #2a3942 !important;
+}
+
+.dark .bg-gray-50/50 {
+    background-color: #111b21 !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark input, .dark select, .dark textarea {
+    background-color: #2a3942 !important;
+    color: #e9edef !important;
+    border-color: #222e35 !important;
+}
+
+.dark input::placeholder {
+    color: #8696a0 !important;
+}
+
+.dark .bg-blue-50 {
+    background-color: #202c33 !important;
+    color: #2563EB !important;
+}
+
+.dark .bg-red-50 {
+    background-color: #2a1a1c !important;
+    border-color: #551a20 !important;
+    color: #f87171 !important;
+}
+
+.dark .text-red-800, .dark .text-red-900 {
+    color: #f87171 !important;
+}
+
+.dark .bg-red-100 {
+    background-color: #551a20 !important;
+    color: #f87171 !important;
+}
+
+.dark .bg-red-100/50 {
+    background-color: rgba(85, 26, 32, 0.5) !important;
+}
+
+.dark .border-red-100, .dark .border-red-200 {
+    border-color: #551a20 !important;
+}
+
+.dark .bg-gradient-to-r.from-medical-blue.to-blue-600 {
+    background-image: linear-gradient(to right, #1f2c34, #202c33) !important;
+    border: 1px solid #222e35;
+}
+
+/* Sidebar consistency in dark mode */
+.dark aside.bg-medical-dark {
+    background-color: #111b21 !important;
+    border-right: 1px solid #222e35;
+}
