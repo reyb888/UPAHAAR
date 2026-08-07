@@ -4,3 +4,4 @@ node_modules/
 uploads/
 .env
 .DS_Store
+supabase_email_confirmation_template.html
