@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X, ChevronDown, MapPin, Syringe } from 'lucide-react';
 import Link from 'next/link';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
@@ -24,6 +24,7 @@ export default function CitizenDashboard() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [medicineToRemove, setMedicineToRemove] = useState<any>(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
 
   const getFileUrl = (url?: string) => {
     if (!url) return '#';
@@ -236,6 +237,38 @@ export default function CitizenDashboard() {
             <Link href="/dashboard/citizen/vitals" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
               <Activity size={20} /> Vital Tracker
             </Link>
+
+            {/* Advanced Tools Dropdown */}
+            <div>
+              <button
+                onClick={() => setShowAdvancedTools(!showAdvancedTools)}
+                className="w-full flex items-center justify-between hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300"
+              >
+                <span className="flex items-center gap-3">
+                  <Settings size={20} /> Advanced Tools
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${showAdvancedTools ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showAdvancedTools && (
+                <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-3">
+                  <Link
+                    href="/dashboard/citizen/pharmacy-finder"
+                    className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white text-sm font-medium"
+                  >
+                    <MapPin size={16} /> Nearby Pharmacies
+                  </Link>
+                  <Link
+                    href="/dashboard/citizen/vaccines"
+                    className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white text-sm font-medium"
+                  >
+                    <Syringe size={16} /> Vaccine Scheduler
+                  </Link>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
         <div className="mt-auto pt-6 border-t border-white/10">
@@ -440,14 +473,7 @@ export default function CitizenDashboard() {
                 </form>
               </motion.div>
 
-              {/* Advanced Apps Links */}
-              <div className="bg-medical-dark text-white p-6 rounded-2xl shadow-lg">
-                 <h3 className="font-bold mb-4">Advanced Tools</h3>
-                 <div className="space-y-3">
-                    <Link href="/dashboard/citizen/pharmacy-finder" className="block bg-white/10 hover:bg-white/20 p-3 rounded-lg transition text-sm font-semibold">📍 Nearby Pharmacies</Link>
-                    <Link href="/dashboard/citizen/vaccines" className="block bg-white/10 hover:bg-white/20 p-3 rounded-lg transition text-sm font-semibold">💉 Vaccine Scheduler</Link>
-                 </div>
-              </div>
+
               
               {/* Security Setup */}
               <TwoFactorSetup />
