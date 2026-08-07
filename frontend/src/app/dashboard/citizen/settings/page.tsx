@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Moon, Sun, ShieldCheck, LogOut, Search, Check, 
-  Clock, QrCode, Activity, Settings, Eye, CheckCircle2, Ban, ShieldAlert 
+  Settings, Eye, CheckCircle2, Ban, ShieldAlert 
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

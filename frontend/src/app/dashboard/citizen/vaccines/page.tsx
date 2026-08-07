@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Syringe, Calendar, Clock, AlertCircle, CheckCircle, ShieldCheck, X, Plus, QrCode, Activity, Settings } from 'lucide-react';
+import { Syringe, Calendar, Clock, AlertCircle, CheckCircle, ShieldCheck, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import CitizenSidebar from '../../../components/CitizenSidebar';
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Clock, Search, Navigation, QrCode, Activity, Settings } from 'lucide-react';
+import { MapPin, Phone, Clock, Search, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import CitizenSidebar from '../../../components/CitizenSidebar';
 

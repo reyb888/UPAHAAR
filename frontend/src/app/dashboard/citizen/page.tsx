@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X, ChevronDown, MapPin, Syringe, Stethoscope } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
 import Link from 'next/link';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
@@ -25,20 +25,6 @@ export default function CitizenDashboard() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [medicineToRemove, setMedicineToRemove] = useState<any>(null);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [showAdvancedTools, setShowAdvancedTools] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('upahaar_advanced_tools_open') === 'true';
-    }
-    return false;
-  });
-
-  const toggleAdvancedTools = () => {
-    setShowAdvancedTools(prev => {
-      const next = !prev;
-      localStorage.setItem('upahaar_advanced_tools_open', String(next));
-      return next;
-    });
-  };
 
   const getFileUrl = (url?: string) => {
     if (!url) return '#';
