@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Users } from 'lucide-react';
+import { Plus, Trash2, Users, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CitizenRegister() {
@@ -21,6 +21,7 @@ export default function CitizenRegister() {
   const [showFamilyHistoryTab, setShowFamilyHistoryTab] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [successId, setSuccessId] = useState<string | null>(null);
 
   const getBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -85,11 +86,9 @@ export default function CitizenRegister() {
       
       if (response.ok) {
         if (data.email_confirmation_required) {
-          alert(`Registration successful! Your UPAHAAR ID is: ${data.upahaar_id}\n\nPlease check your email to verify your account before logging in.`);
-        } else {
-          alert(`Registration successful! Your UPAHAAR ID is: ${data.upahaar_id}`);
+          alert(`Please check your email to verify your account before logging in.`);
         }
-        window.location.href = '/auth/citizen/login';
+        setSuccessId(data.upahaar_id);
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -100,6 +99,46 @@ export default function CitizenRegister() {
       setIsLoading(false);
     }
   };
+
+  if (successId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-medical-light to-blue-50 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/20 text-center"
+        >
+          <div className="bg-medical-blue p-8 text-white">
+            <CheckCircle className="mx-auto mb-4" size={56} strokeWidth={1.5} />
+            <h2 className="text-2xl font-bold mb-1">Registration Successful!</h2>
+            <p className="text-blue-100 text-sm">Your UPAHAAR account has been created.</p>
+          </div>
+
+          <div className="p-8 space-y-6">
+            <div>
+              <p className="text-gray-500 text-sm mb-2">Your Official UPAHAAR Patient ID is:</p>
+              <div className="text-2xl font-mono font-bold text-medical-blue bg-blue-50 py-4 px-6 rounded-xl border border-blue-100 tracking-widest">
+                {successId}
+              </div>
+            </div>
+
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+              <p className="text-sm text-red-600 font-bold">⚠ Please note this down!</p>
+              <p className="text-xs text-red-500 mt-1">You will need this ID to log in to your account.</p>
+            </div>
+
+            <Link
+              href="/auth/citizen/login"
+              className="w-full inline-block bg-medical-blue text-white py-3 rounded-xl font-bold text-center hover:bg-blue-700 transition-colors"
+            >
+              Proceed to Login
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-medical-light to-blue-50 flex items-center justify-center p-6">
