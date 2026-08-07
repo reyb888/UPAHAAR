@@ -24,6 +24,7 @@ export const registerUser = async (req, res) => {
 
         // --- Supabase Auth Path ---
         if (supabase) {
+            console.log(`[Register] Attempting Supabase Auth sign-up for email: ${email}`);
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -40,9 +41,11 @@ export const registerUser = async (req, res) => {
             });
 
             if (error) {
-                console.error("Supabase Auth Error:", error);
+                console.error("[Register] Supabase Auth Error:", error);
                 return res.status(400).json({ message: error.message });
             }
+
+            console.log(`[Register] Supabase Auth sign-up successful for email: ${email}, user ID: ${data.user?.id}`);
 
             // Supabase Auth created the user. The DB trigger will sync to public.users.
             // Check if email confirmation is required (user exists but not confirmed)
@@ -59,6 +62,7 @@ export const registerUser = async (req, res) => {
         }
 
         // --- SQLite Fallback Path ---
+        console.log(`[Register] Supabase client is not active/initialized. Falling back to local SQLite DB for email: ${email}`);
         const id = uuidv4();
         
         // Hash password
