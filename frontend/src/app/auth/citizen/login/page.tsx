@@ -88,6 +88,11 @@ export default function CitizenLogin() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <div className="text-right">
+                <Link href="/auth/citizen/forgot-password" className="text-xs text-medical-blue font-semibold hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Authenticator Code</label>
