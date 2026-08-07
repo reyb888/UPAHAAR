@@ -16,6 +16,19 @@ const convertQuery = (sql) => {
     return sql.replace(/\?/g, () => `$${index++}`);
 };
 
+import fs from 'fs';
+
+const logDbError = (context, sql, params, err) => {
+    try {
+        const logPath = path.resolve(__dirname, '..', '..', 'db_errors.log');
+        const logMessage = `[${new Date().toISOString()}] ${context} ERROR:\nSQL: ${sql}\nParams: ${JSON.stringify(params)}\nError: ${err.message || err}\n${err.stack || ''}\n\n`;
+        fs.appendFileSync(logPath, logMessage);
+    } catch (e) {
+        console.error("Failed to write to db_errors.log:", e);
+    }
+    console.error(context, err);
+};
+
 if (process.env.DATABASE_URL) {
     console.log('Connecting to Supabase PostgreSQL...');
     const pool = new pg.Pool({
@@ -28,30 +41,69 @@ if (process.env.DATABASE_URL) {
             if (typeof params === 'function') { callback = params; params = []; }
             pool.query(convertQuery(sql), params || [])
                 .then(res => { if (callback) callback.call({ lastID: null, changes: res?.rowCount || 0 }, null); })
-                .catch(err => { if (callback) callback(err); });
+                .catch(err => {
+                    logDbError("PostgreSQL RUN", sql, params, err);
+                    if (callback) callback(err);
+                });
         },
         get: function(sql, params, callback) {
             if (typeof params === 'function') { callback = params; params = []; }
             pool.query(convertQuery(sql), params || [])
                 .then(res => { if (callback) callback(null, res.rows[0]); })
-                .catch(err => { if (callback) callback(err); });
+                .catch(err => {
+                    logDbError("PostgreSQL GET", sql, params, err);
+                    if (callback) callback(err);
+                });
         },
         all: function(sql, params, callback) {
             if (typeof params === 'function') { callback = params; params = []; }
             pool.query(convertQuery(sql), params || [])
                 .then(res => { if (callback) callback(null, res.rows); })
-                .catch(err => { if (callback) callback(err); });
+                .catch(err => {
+                    logDbError("PostgreSQL ALL", sql, params, err);
+                    if (callback) callback(err);
+                });
         }
     };
 } else {
     const dbPath = path.resolve(__dirname, 'upahaar.db');
-    db = new sqlite3.Database(dbPath, (err) => {
+    const sqliteDb = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('Error opening local SQLite database', err.message);
         } else {
             console.log('Connected to local SQLite database.');
         }
     });
+
+    db = {
+        run: function(sql, params, callback) {
+            if (typeof params === 'function') { callback = params; params = []; }
+            sqliteDb.run(sql, params, function(err) {
+                if (err) {
+                    logDbError("SQLite RUN", sql, params, err);
+                }
+                if (callback) callback.call(this, err);
+            });
+        },
+        get: function(sql, params, callback) {
+            if (typeof params === 'function') { callback = params; params = []; }
+            sqliteDb.get(sql, params, function(err, row) {
+                if (err) {
+                    logDbError("SQLite GET", sql, params, err);
+                }
+                if (callback) callback(err, row);
+            });
+        },
+        all: function(sql, params, callback) {
+            if (typeof params === 'function') { callback = params; params = []; }
+            sqliteDb.all(sql, params, function(err, rows) {
+                if (err) {
+                    logDbError("SQLite ALL", sql, params, err);
+                }
+                if (callback) callback(err, rows);
+            });
+        }
+    };
 }
 
 export const initializeDB = async () => {

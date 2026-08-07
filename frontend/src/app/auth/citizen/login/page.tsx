@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function CitizenLogin() {
   const [credentials, setCredentials] = useState({ upahaar_id: '', password: '', totp_code: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,12 +72,22 @@ export default function CitizenLogin() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Password</label>
-              <input 
-                type="password" required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50/50"
-                placeholder="••••••••"
-                onChange={e => setCredentials({...credentials, password: e.target.value})}
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? 'text' : 'password'} required
+                  className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50/50"
+                  placeholder="••••••••"
+                  onChange={e => setCredentials({...credentials, password: e.target.value})}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <div className="text-right">
                 <Link href="/auth/citizen/forgot-password" className="text-xs text-medical-blue font-semibold hover:underline">
                   Forgot Password?

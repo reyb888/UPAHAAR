@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X, ChevronDown, MapPin, Syringe } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
 import Link from 'next/link';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
+import CitizenSidebar from '../../components/CitizenSidebar';
 
 export default function CitizenDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -24,7 +25,6 @@ export default function CitizenDashboard() {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [medicineToRemove, setMedicineToRemove] = useState<any>(null);
   const [isRemoving, setIsRemoving] = useState(false);
-  const [showAdvancedTools, setShowAdvancedTools] = useState(false);
 
   const getFileUrl = (url?: string) => {
     if (!url) return '#';
@@ -224,59 +224,7 @@ export default function CitizenDashboard() {
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-medical-dark text-white p-6 flex flex-col min-h-[10vh] md:min-h-screen justify-between shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold mb-8">UPAHAAR</h2>
-          <nav className="space-y-4">
-            <Link href="/dashboard/citizen" className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold">
-              <Clock size={20} /> My Timeline
-            </Link>
-            <Link href="/dashboard/citizen/qr-card" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-              <QrCode size={20} /> My QR Card
-            </Link>
-            <Link href="/dashboard/citizen/vitals" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-              <Activity size={20} /> Vital Tracker
-            </Link>
-
-            {/* Advanced Tools Dropdown */}
-            <div>
-              <button
-                onClick={() => setShowAdvancedTools(!showAdvancedTools)}
-                className="w-full flex items-center justify-between hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300"
-              >
-                <span className="flex items-center gap-3">
-                  <Settings size={20} /> Advanced Tools
-                </span>
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${showAdvancedTools ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {showAdvancedTools && (
-                <div className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-3">
-                  <Link
-                    href="/dashboard/citizen/pharmacy-finder"
-                    className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white text-sm font-medium"
-                  >
-                    <MapPin size={16} /> Nearby Pharmacies
-                  </Link>
-                  <Link
-                    href="/dashboard/citizen/vaccines"
-                    className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white text-sm font-medium"
-                  >
-                    <Syringe size={16} /> Vaccine Scheduler
-                  </Link>
-                </div>
-              )}
-            </div>
-          </nav>
-        </div>
-        <div className="mt-auto pt-6 border-t border-white/10">
-          <Link href="/dashboard/citizen/settings" className="flex items-center gap-3 hover:bg-white/5 p-3 rounded-lg transition-colors text-gray-300">
-            <Settings size={20} /> Settings
-          </Link>
-        </div>
-      </aside>
+      <CitizenSidebar activePage="timeline" />
 
       {/* Main Content Area */}
       <main className="flex-1 p-6 lg:p-10">

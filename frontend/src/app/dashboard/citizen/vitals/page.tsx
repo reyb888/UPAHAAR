@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Activity, Droplets, Plus } from 'lucide-react';
 import Link from 'next/link';
+import CitizenSidebar from '../../../components/CitizenSidebar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function VitalsDashboard() {
@@ -115,6 +116,7 @@ export default function VitalsDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      <CitizenSidebar activePage="vitals" />
       <main className="flex-1 p-6 lg:p-10">
         <div className="max-w-5xl mx-auto space-y-8">
           
