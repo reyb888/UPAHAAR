@@ -21,6 +21,9 @@ export default function DoctorRegister() {
       });
       const data = await response.json();
       if (response.ok) {
+        if (data.email_confirmation_required) {
+          alert(`Please check your email to verify your account before logging in.`);
+        }
         setSuccessId(data.upahaar_id);
       } else {
         alert(data.message || 'Registration failed');
