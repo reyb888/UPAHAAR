@@ -1,23 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Clock, QrCode, Activity, Settings, ChevronDown, MapPin, Syringe, Stethoscope } from 'lucide-react';
+import { Clock, QrCode, Activity, Settings, ChevronDown, MapPin, Syringe, Stethoscope, Bell } from 'lucide-react';
 
 interface CitizenSidebarProps {
-  activePage: 'timeline' | 'qr-card' | 'vitals' | 'pharmacy-finder' | 'vaccines' | 'settings';
+  activePage: 'timeline' | 'qr-card' | 'vitals' | 'pharmacy-finder' | 'vaccines' | 'settings' | 'notifications';
 }
 
 export default function CitizenSidebar({ activePage }: CitizenSidebarProps) {
+  const [pendingCount, setPendingCount] = useState(0);
   const [showAdvancedTools, setShowAdvancedTools] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('upahaar_advanced_tools_open');
-      // Default to true if user is on one of the advanced tools pages, or if explicitly saved as 'true'
       if (activePage === 'pharmacy-finder' || activePage === 'vaccines') return true;
       return stored === 'true';
     }
     return false;
   });
+
+  useEffect(() => {
+    const fetchPendingNotifications = async () => {
+      const token = localStorage.getItem('upahaar_token');
+      if (!token) return;
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/notifications`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const pending = (data.notifications || []).filter((n: any) => n.status === 'PENDING').length;
+          setPendingCount(pending);
+        }
+      } catch (err) {
+        console.error('Error fetching notification count:', err);
+      }
+    };
+    fetchPendingNotifications();
+    const interval = setInterval(fetchPendingNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleAdvancedTools = () => {
     setShowAdvancedTools(prev => {
@@ -63,6 +85,23 @@ export default function CitizenSidebar({ activePage }: CitizenSidebarProps) {
             }`}
           >
             <Activity size={20} /> Vital Tracker
+          </Link>
+          <Link
+            href="/dashboard/citizen/notifications"
+            className={`flex items-center justify-between p-3 rounded-lg font-semibold transition-colors ${
+              activePage === 'notifications'
+                ? 'bg-white/10 text-white'
+                : 'hover:bg-white/5 text-gray-300'
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <Bell size={20} /> Notifications
+            </span>
+            {pendingCount > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                {pendingCount}
+              </span>
+            )}
           </Link>
 
           {/* Advanced Tools Dropdown */}
