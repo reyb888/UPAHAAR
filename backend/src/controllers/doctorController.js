@@ -162,7 +162,7 @@ export const scanPatientFace = async (req, res) => {
 
     const doctorId = req.user.id;
 
-    db.all(`SELECT id, upahaar_id, face_photo_url FROM users WHERE role = 'CITIZEN' AND face_photo_url IS NOT NULL`, async (err, citizens) => {
+    db.all(`SELECT id, upahaar_id, full_name, face_photo_url FROM users WHERE role = 'CITIZEN' AND face_photo_url IS NOT NULL`, async (err, citizens) => {
         if (err) return res.status(500).json({ message: 'Database error fetching citizens' });
         
         if (citizens.length === 0) {
@@ -213,7 +213,7 @@ If there is no match or you are unsure, respond with {"match": null}
                                 else console.log(`[ACCESS_LOG] Face Scan - Successfully logged access event: ${logId}`);
                             }
                         );
-                        return res.json({ upahaar_id: jsonResponse.match, request_id: logId, status: 'PENDING' });
+                        return res.json({ upahaar_id: jsonResponse.match, full_name: matchedCitizen.full_name, request_id: logId, status: 'PENDING' });
                     }
                     return res.status(404).json({ message: 'No matching face found in the database.' });
                 } else {

@@ -26,6 +26,11 @@ export default function DoctorDashboard() {
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
 
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [pendingPatientName, setPendingPatientName] = useState('');
+  const [pendingPatientId, setPendingPatientId] = useState('');
+
   const getFileUrl = (url?: string) => {
     if (!url) return '#';
     if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
@@ -78,6 +83,66 @@ export default function DoctorDashboard() {
   const faceVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isPendingApproval && requestId) {
+      const pollStatus = async () => {
+        try {
+          const token = localStorage.getItem('upahaar_token');
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/access-status/${requestId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          
+          if (response.ok) {
+            if (data.status === 'APPROVED') {
+              setIsPendingApproval(false);
+              setRequestId(null);
+              setPatientData(data);
+              
+              // Process medicines
+              const timelineData = data.timeline || [];
+              const allMedicines: any[] = [];
+              const uniqueMedKeys = new Set<string>();
+              timelineData.forEach((t: any) => {
+                if (t.medicines && t.medicines !== "[]" && t.medicines !== "null") {
+                  try {
+                    const meds = JSON.parse(t.medicines);
+                    if (Array.isArray(meds)) {
+                      meds.forEach((med: any) => {
+                        const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                        if (!uniqueMedKeys.has(medKey)) {
+                          uniqueMedKeys.add(medKey);
+                          allMedicines.push(med);
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Failed to parse medicines:", e);
+                  }
+                }
+              });
+              setActiveMedicines(allMedicines);
+            } else if (data.status === 'REVOKED') {
+              setIsPendingApproval(false);
+              setRequestId(null);
+              setError("Access request was denied/revoked by the patient.");
+            }
+          }
+        } catch (err) {
+          console.error("Polling error:", err);
+        }
+      };
+      
+      interval = setInterval(pollStatus, 5000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPendingApproval, requestId]);
+
 
 
   const startScanner = () => {
@@ -99,7 +164,7 @@ export default function DoctorDashboard() {
               setUpahaarId(decodedText);
               scanner.clear();
               setIsScanning(false);
-              fetchPatientData(decodedText);
+              fetchPatientData(decodedText, 'qr');
             },
             (err: any) => {
               // ignore
@@ -172,7 +237,11 @@ export default function DoctorDashboard() {
       
       if (response.ok && data.upahaar_id) {
         setUpahaarId(data.upahaar_id);
-        fetchPatientData(data.upahaar_id);
+        setIsPendingApproval(true);
+        setRequestId(data.request_id);
+        setPendingPatientName(data.full_name || 'Patient');
+        setPendingPatientId(data.upahaar_id);
+        setLoading(false);
       } else {
         setError(data.message || "Face not recognized in database.");
         setLoading(false);
@@ -195,46 +264,54 @@ export default function DoctorDashboard() {
     sessionStorage.removeItem('active_patient_id');
   };
 
-  const fetchPatientData = async (id: string) => {
+  const fetchPatientData = async (id: string, source: 'manual' | 'qr' | 'face' = 'manual') => {
     setLoading(true);
     setError(null);
     setPatientData(null);
+    setIsPendingApproval(false);
+    setRequestId(null);
     const token = localStorage.getItem('upahaar_token');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${id}?source=${source}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       
       if (response.ok) {
-        setPatientData(data);
-        sessionStorage.setItem('active_patient_id', id);
-        
-        // Combine medicines from all prescriptions
-        const timelineData = data.timeline || [];
-        const allMedicines: any[] = [];
-        const uniqueMedKeys = new Set<string>();
-        timelineData.forEach((t: any) => {
-          if (t.medicines && t.medicines !== "[]" && t.medicines !== "null") {
-            try {
-              const meds = JSON.parse(t.medicines);
-              if (Array.isArray(meds)) {
-                meds.forEach((med: any) => {
-                  const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
-                  if (!uniqueMedKeys.has(medKey)) {
-                    uniqueMedKeys.add(medKey);
-                    allMedicines.push(med);
-                  }
-                });
+        if (data.status === 'PENDING') {
+          setIsPendingApproval(true);
+          setRequestId(data.request_id);
+          setPendingPatientName(data.patient.full_name);
+          setPendingPatientId(data.patient.upahaar_id);
+        } else {
+          setPatientData(data);
+          sessionStorage.setItem('active_patient_id', id);
+          
+          // Combine medicines from all prescriptions
+          const timelineData = data.timeline || [];
+          const allMedicines: any[] = [];
+          const uniqueMedKeys = new Set<string>();
+          timelineData.forEach((t: any) => {
+            if (t.medicines && t.medicines !== "[]" && t.medicines !== "null") {
+              try {
+                const meds = JSON.parse(t.medicines);
+                if (Array.isArray(meds)) {
+                  meds.forEach((med: any) => {
+                    const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                    if (!uniqueMedKeys.has(medKey)) {
+                      uniqueMedKeys.add(medKey);
+                      allMedicines.push(med);
+                    }
+                  });
+                }
+              } catch (e) {
+                console.error("Failed to parse medicines:", e);
               }
-            } catch (e) {
-              console.error("Failed to parse medicines:", e);
             }
-          }
-        });
-        setActiveMedicines(allMedicines);
-
+          });
+          setActiveMedicines(allMedicines);
+        }
       } else {
         setError(data.message || "Failed to fetch patient data.");
         sessionStorage.removeItem('active_patient_id');
@@ -386,7 +463,30 @@ export default function DoctorDashboard() {
 
             {/* Right Column: Patient Data */}
             <div className="lg:col-span-2">
-               {loading ? (
+               {isPendingApproval ? (
+                 <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                   <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-6 animate-pulse border border-amber-200">
+                     <Clock size={32} className="text-amber-500" />
+                   </div>
+                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Awaiting Patient Approval</h2>
+                   <p className="text-gray-500 max-w-md mb-6">
+                     Access request has been sent for patient <strong>{pendingPatientName}</strong> (<span className="font-mono">{pendingPatientId}</span>).
+                   </p>
+                   <div className="flex items-center gap-2 text-sm text-gray-400 font-semibold bg-gray-50 px-4 py-2 rounded-xl">
+                     <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+                     Polling approval status...
+                   </div>
+                   <button
+                     onClick={() => {
+                       setIsPendingApproval(false);
+                       setRequestId(null);
+                     }}
+                     className="mt-8 text-sm text-red-500 font-semibold hover:underline"
+                   >
+                     Cancel Request
+                   </button>
+                 </div>
+               ) : loading ? (
                  <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-full min-h-[400px]">
                    <div className="w-12 h-12 border-4 border-medical-blue border-t-transparent rounded-full animate-spin mb-4"></div>
                    <p className="text-gray-500 font-semibold">Decrypting medical records...</p>
