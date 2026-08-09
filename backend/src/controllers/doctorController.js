@@ -36,9 +36,12 @@ export const scanPatientQr = (req, res) => {
 
                     // Log the access event
                     const logId = uuidv4();
+                    const citizenId = patient.id || patient.user_id;
+                    console.log(`[ACCESS_LOG] Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
                     db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
-                        [logId, patient.id, doctorId, 'QR_SCAN', 'PENDING'], (logErr) => {
-                            if (logErr) console.error("Failed to log access event:", logErr);
+                        [logId, citizenId, doctorId, 'QR_SCAN', 'PENDING'], (logErr) => {
+                            if (logErr) console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                            else console.log(`[ACCESS_LOG] Successfully logged access event: ${logId}`);
                         }
                     );
 
@@ -176,9 +179,12 @@ If there is no match or you are unsure, respond with {"match": null}
                     const matchedCitizen = citizens.find(c => c.upahaar_id === jsonResponse.match);
                     if (matchedCitizen) {
                         const logId = uuidv4();
+                        const citizenId = matchedCitizen.id || matchedCitizen.user_id;
+                        console.log(`[ACCESS_LOG] Face Scan - Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
                         db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
-                            [logId, matchedCitizen.id, doctorId, 'FACE_SCAN', 'PENDING'], (err) => {
-                                if (err) console.error("Failed to log access event:", err);
+                            [logId, citizenId, doctorId, 'FACE_SCAN', 'PENDING'], (err) => {
+                                if (err) console.error("[ACCESS_LOG] Face Scan - Failed to log access event:", err);
+                                else console.log(`[ACCESS_LOG] Face Scan - Successfully logged access event: ${logId}`);
                             }
                         );
                     }

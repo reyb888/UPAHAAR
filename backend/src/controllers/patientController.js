@@ -326,8 +326,11 @@ export const getNotifications = (req, res) => {
         WHERE a.citizen_id = ?
         ORDER BY a.created_at DESC
     `, [citizenId], (err, logs) => {
-        if (err) return res.status(500).json({ message: 'Error fetching notifications' });
-        res.json({ notifications: logs });
+        if (err) {
+            console.error('[NOTIFICATIONS] Error fetching notifications:', err);
+            return res.status(500).json({ message: 'Error fetching notifications' });
+        }
+        res.json({ notifications: logs || [] });
     });
 };
 
