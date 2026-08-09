@@ -4,15 +4,19 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
 import CitizenSidebar from '../../components/CitizenSidebar';
 
 export default function CitizenDashboard() {
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeMedicines, setActiveMedicines] = useState<any[]>([]);
   const [takenMeds, setTakenMeds] = useState<number[]>([]);
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
@@ -36,7 +40,10 @@ export default function CitizenDashboard() {
 
   const fetchProfile = async () => {
     const token = localStorage.getItem('upahaar_token');
-    if (!token) return;
+    if (!token) {
+      router.push('/auth/citizen/login');
+      return false;
+    }
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -44,15 +51,22 @@ export default function CitizenDashboard() {
       if (response.ok) {
         const data = await response.json();
         setProfile(data);
+        return true;
+      } else if (response.status === 401) {
+        localStorage.removeItem('upahaar_token');
+        router.push('/auth/citizen/login');
+        return false;
       }
+      throw new Error("Failed to retrieve profile data");
     } catch (err) {
       console.error('Failed to fetch profile', err);
+      throw err;
     }
   };
 
   const fetchTimeline = async () => {
     const token = localStorage.getItem('upahaar_token');
-    if (!token) return;
+    if (!token) return false;
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/timeline`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -84,9 +98,16 @@ export default function CitizenDashboard() {
           }
         });
         setActiveMedicines(allMedicines);
+        return true;
+      } else if (response.status === 401) {
+        localStorage.removeItem('upahaar_token');
+        router.push('/auth/citizen/login');
+        return false;
       }
+      throw new Error("Failed to retrieve medical timeline");
     } catch (err) {
       console.error('Failed to fetch timeline:', err);
+      throw err;
     }
   };
 
@@ -106,13 +127,13 @@ export default function CitizenDashboard() {
         alert(data.message || "Failed to delete record");
       }
     } catch (err) {
-      console.error('Failed to fetch timeline:', err);
+      console.error('Failed to delete record:', err);
     }
   };
 
   const fetchNotifications = async () => {
     const token = localStorage.getItem('upahaar_token');
-    if (!token) return;
+    if (!token) return false;
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/patients/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -120,9 +141,16 @@ export default function CitizenDashboard() {
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications || []);
+        return true;
+      } else if (response.status === 401) {
+        localStorage.removeItem('upahaar_token');
+        router.push('/auth/citizen/login');
+        return false;
       }
+      throw new Error("Failed to retrieve security notifications");
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
+      throw err;
     }
   };
 
@@ -180,9 +208,19 @@ export default function CitizenDashboard() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    fetchProfile();
-    fetchTimeline();
-    fetchNotifications();
+
+    const initData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await Promise.all([fetchProfile(), fetchTimeline(), fetchNotifications()]);
+      } catch (err) {
+        setError("Error connecting to the backend server. Please verify if it is running.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    initData();
   }, []);
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -253,7 +291,25 @@ export default function CitizenDashboard() {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {loading ? (
+            <div className="bg-white p-12 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
+              <div className="w-12 h-12 border-4 border-medical-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 font-semibold">Loading medical records...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 p-12 rounded-3xl shadow-sm border border-red-100 flex flex-col items-center justify-center min-h-[400px] text-center">
+              <ShieldAlert size={48} className="text-red-500 mb-4 animate-bounce" />
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Connection Error</h2>
+              <p className="text-gray-650 text-sm max-w-md mb-6">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-2.5 bg-medical-blue text-white rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* Timeline Column */}
             <div className="lg:col-span-2 space-y-6">
@@ -426,8 +482,7 @@ export default function CitizenDashboard() {
               {/* Security Setup */}
               <TwoFactorSetup />
             </div>
-
-          </div>
+          )}
         </div>
       </main>
       {/* Remove Medication Confirmation Modal */}

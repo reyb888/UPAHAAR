@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 export const scanPatientQr = (req, res) => {
     const doctorId = req.user.id;
     const { upahaar_id } = req.params;
+    const { source } = req.query;
 
     if (!upahaar_id) {
         return res.status(400).json({ message: 'UPAHAAR ID is required' });
@@ -26,32 +27,57 @@ export const scanPatientQr = (req, res) => {
             if (err) return res.status(500).json({ message: 'Database error' });
             if (!patient) return res.status(404).json({ message: 'Patient not found or invalid QR' });
 
-            // 3. Fetch the citizen's timeline (prescriptions)
-            db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [patient.id], (err, prescriptions) => {
-                if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
+            const citizenId = patient.id || patient.user_id;
 
-                // 4. Fetch the citizen's vitals
-                db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [patient.id], (err, vitals) => {
-                    if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
+            if (source === 'qr') {
+                // 3. QR Scan: Bypass approval, auto-approved, return full data
+                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+                    if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
 
-                    // Log the access event
-                    const logId = uuidv4();
-                    const citizenId = patient.id || patient.user_id;
-                    console.log(`[ACCESS_LOG] Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
-                    db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
-                        [logId, citizenId, doctorId, 'QR_SCAN', 'PENDING'], (logErr) => {
-                            if (logErr) console.error("[ACCESS_LOG] Failed to log access event:", logErr);
-                            else console.log(`[ACCESS_LOG] Successfully logged access event: ${logId}`);
-                        }
-                    );
+                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                        if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
 
-                    res.json({
-                        patient,
-                        timeline: prescriptions,
-                        vitals: vitals || []
+                        const logId = uuidv4();
+                        console.log(`[ACCESS_LOG] QR SCAN auto-approved. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
+                        db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
+                            [logId, citizenId, doctorId, 'QR_SCAN', 'APPROVED'], (logErr) => {
+                                if (logErr) console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                            }
+                        );
+
+                        res.json({
+                            status: 'APPROVED',
+                            patient,
+                            timeline: prescriptions,
+                            vitals: vitals || []
+                        });
                     });
                 });
-            });
+            } else {
+                // 4. Manual search or face recognition: requires approval
+                const logId = uuidv4();
+                const method = source === 'face' ? 'FACE_SCAN' : 'MANUAL_LOOKUP';
+                console.log(`[ACCESS_LOG] ${method} pending. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
+                
+                db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
+                    [logId, citizenId, doctorId, method, 'PENDING'], (logErr) => {
+                        if (logErr) {
+                            console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                            return res.status(500).json({ message: 'Database error logging access request' });
+                        }
+                        
+                        res.json({
+                            status: 'PENDING',
+                            message: 'Access request sent. Awaiting patient approval.',
+                            request_id: logId,
+                            patient: {
+                                full_name: patient.full_name,
+                                upahaar_id: patient.upahaar_id
+                            }
+                        });
+                    }
+                );
+            }
         });
     });
 };
@@ -136,7 +162,7 @@ export const scanPatientFace = async (req, res) => {
 
     const doctorId = req.user.id;
 
-    db.all(`SELECT id, upahaar_id, face_photo_url FROM users WHERE role = 'CITIZEN' AND face_photo_url IS NOT NULL`, async (err, citizens) => {
+    db.all(`SELECT id, upahaar_id, full_name, face_photo_url FROM users WHERE role = 'CITIZEN' AND face_photo_url IS NOT NULL`, async (err, citizens) => {
         if (err) return res.status(500).json({ message: 'Database error fetching citizens' });
         
         if (citizens.length === 0) {
@@ -187,8 +213,9 @@ If there is no match or you are unsure, respond with {"match": null}
                                 else console.log(`[ACCESS_LOG] Face Scan - Successfully logged access event: ${logId}`);
                             }
                         );
+                        return res.json({ upahaar_id: jsonResponse.match, full_name: matchedCitizen.full_name, request_id: logId, status: 'PENDING' });
                     }
-                    return res.json({ upahaar_id: jsonResponse.match });
+                    return res.status(404).json({ message: 'No matching face found in the database.' });
                 } else {
                     return res.status(404).json({ message: 'No matching face found in the database.' });
                 }
@@ -200,6 +227,46 @@ If there is no match or you are unsure, respond with {"match": null}
         } catch (error) {
             console.error("Gemini AI Face Scan Error:", error);
             res.status(500).json({ message: 'Failed to process AI face scan' });
+        }
+    });
+};
+
+export const checkAccessStatus = (req, res) => {
+    const doctorId = req.user.id;
+    const { request_id } = req.params;
+
+    db.get(`SELECT * FROM access_logs WHERE id = ? AND doctor_id = ?`, [request_id, doctorId], (err, log) => {
+        if (err) return res.status(500).json({ message: 'Database error' });
+        if (!log) return res.status(404).json({ message: 'Access request not found' });
+
+        if (log.status === 'APPROVED' || log.status === 'ACKNOWLEDGED') {
+            // Fetch and return the full patient data
+            db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+                    FROM users u 
+                    LEFT JOIN medical_profiles m ON u.id = m.user_id 
+                    WHERE u.id = ? AND u.role = 'CITIZEN'`, 
+            [log.citizen_id], (err, patient) => {
+                if (err || !patient) return res.status(500).json({ message: 'Error fetching patient profile' });
+
+                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [patient.id], (err, prescriptions) => {
+                    if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
+
+                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [patient.id], (err, vitals) => {
+                        if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
+
+                        res.json({
+                            status: 'APPROVED',
+                            patient,
+                            timeline: prescriptions,
+                            vitals: vitals || []
+                        });
+                    });
+                });
+            });
+        } else if (log.status === 'REVOKED') {
+            res.json({ status: 'REVOKED', message: 'Access request was revoked/denied by the patient.' });
+        } else {
+            res.json({ status: 'PENDING', message: 'Awaiting patient approval.' });
         }
     });
 };

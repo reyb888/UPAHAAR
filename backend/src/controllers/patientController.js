@@ -337,9 +337,9 @@ export const getNotifications = (req, res) => {
 export const acknowledgeNotification = (req, res) => {
     const citizenId = req.user.id;
     const logId = req.params.id;
-    db.run(`UPDATE access_logs SET status = 'ACKNOWLEDGED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err) {
+    db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err) {
         if (err) return res.status(500).json({ message: 'Error updating notification' });
-        res.json({ message: 'Notification acknowledged' });
+        res.json({ message: 'Notification approved' });
     });
 };
 
