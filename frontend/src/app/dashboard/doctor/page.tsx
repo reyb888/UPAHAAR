@@ -78,12 +78,7 @@ export default function DoctorDashboard() {
   const faceVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    return () => {
-      stopScanner();
-      stopFaceScanner();
-    };
-  }, []);
+
 
   const startScanner = () => {
     setIsScanning(true);
@@ -193,6 +188,13 @@ export default function DoctorDashboard() {
     if (upahaarId.trim()) fetchPatientData(upahaarId.trim());
   };
 
+  const handleClearPatient = () => {
+    setPatientData(null);
+    setUpahaarId('');
+    setActiveMedicines([]);
+    sessionStorage.removeItem('active_patient_id');
+  };
+
   const fetchPatientData = async (id: string) => {
     setLoading(true);
     setError(null);
@@ -207,6 +209,7 @@ export default function DoctorDashboard() {
       
       if (response.ok) {
         setPatientData(data);
+        sessionStorage.setItem('active_patient_id', id);
         
         // Combine medicines from all prescriptions
         const timelineData = data.timeline || [];
@@ -234,13 +237,28 @@ export default function DoctorDashboard() {
 
       } else {
         setError(data.message || "Failed to fetch patient data.");
+        sessionStorage.removeItem('active_patient_id');
       }
     } catch (err) {
       setError("Server connection error.");
+      sessionStorage.removeItem('active_patient_id');
     } finally {
       setLoading(false);
     }
   };
+
+  // Restore active patient on mount (survives page refresh) + cleanup scanners on unmount
+  useEffect(() => {
+    const savedPatientId = sessionStorage.getItem('active_patient_id');
+    if (savedPatientId) {
+      setUpahaarId(savedPatientId);
+      fetchPatientData(savedPatientId);
+    }
+    return () => {
+      stopScanner();
+      stopFaceScanner();
+    };
+  }, []);
 
 
   const handleAiSearch = async () => {
@@ -276,9 +294,9 @@ export default function DoctorDashboard() {
       <aside className="w-full md:w-64 bg-medical-dark text-white p-6 flex flex-col min-h-[10vh] md:min-h-screen">
         <h2 className="text-2xl font-bold mb-8">UPAHAAR</h2>
         <nav className="flex-1 space-y-4">
-          <Link href="/dashboard/doctor" className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold"><Scan size={20} /> Scan Patient</Link>
+          <button onClick={handleClearPatient} className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold w-full text-left"><Scan size={20} /> Scan Patient</button>
         </nav>
-        <button onClick={() => { localStorage.clear(); window.location.href = '/auth/doctor/login'; }} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mt-auto font-semibold">
+        <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = '/auth/doctor/login'; }} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mt-auto font-semibold">
           <LogOut size={18} /> Logout
         </button>
       </aside>
