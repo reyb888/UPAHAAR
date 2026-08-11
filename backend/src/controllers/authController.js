@@ -47,6 +47,13 @@ export const registerUser = async (req, res) => {
                 return res.status(400).json({ message: error.message });
             }
 
+            // GoTrue returns 200 with an EMPTY identities array when the email is already registered.
+            // No user is created in this case - treat it as a conflict, not a success.
+            if (data.user && data.user.identities && data.user.identities.length === 0) {
+                console.warn(`[Register] Email already registered (no identity created): ${email}`);
+                return res.status(409).json({ message: 'An account with this email already exists. Please log in instead.' });
+            }
+
             console.log(`[Register] Supabase Auth sign-up successful for email: ${email}, user ID: ${data.user?.id}`);
 
             // Supabase Auth created the user. The DB trigger will sync to public.users.
