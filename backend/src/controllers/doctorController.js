@@ -18,7 +18,11 @@ export const scanPatientQr = (req, res) => {
             JOIN users u ON u.id = r.citizen_id
             WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [targetId, doctorId], (err, revoked) => {
         if (err) return res.status(500).json({ message: 'Database error' });
-        if (revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
+        if (revoked) {
+            // Revocation is not permanent: a QR scan is fresh consent, and manual/face
+            // lookups fall through to a new PENDING request the patient can re-approve.
+            console.log(`[ACCESS] Doctor ${doctorId} had access revoked by patient ${targetId}. Continuing with ${source || 'manual'} flow (revocation is not permanent).`);
+        }
 
         // 2. Find the citizen's profile
         db.get(`SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 

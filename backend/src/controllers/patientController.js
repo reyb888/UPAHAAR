@@ -348,9 +348,18 @@ export const getNotifications = (req, res) => {
 export const acknowledgeNotification = (req, res) => {
     const citizenId = req.user.id;
     const logId = req.params.id;
-    db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err) {
-        if (err) return res.status(500).json({ message: 'Error updating notification' });
-        res.json({ message: 'Notification approved' });
+    db.get(`SELECT doctor_id FROM access_logs WHERE id = ? AND citizen_id = ?`, [logId, citizenId], (err, log) => {
+        if (err || !log) return res.status(404).json({ message: 'Notification not found' });
+
+        // Approving a request re-grants access: clear any previous revocation for this doctor
+        db.run(`DELETE FROM revoked_access WHERE citizen_id = ? AND doctor_id = ?`, [citizenId, log.doctor_id], (delErr) => {
+            if (delErr) return res.status(500).json({ message: 'Error updating notification' });
+
+            db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err2) {
+                if (err2) return res.status(500).json({ message: 'Error updating notification' });
+                res.json({ message: 'Notification approved' });
+            });
+        });
     });
 };
 
