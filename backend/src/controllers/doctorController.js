@@ -11,23 +11,25 @@ export const scanPatientQr = (req, res) => {
         return res.status(400).json({ message: 'UPAHAAR ID is required' });
     }
 
+    const targetId = upahaar_id.trim().toUpperCase();
+
     // 1. Check if Doctor is blocked by this citizen
     db.get(`SELECT * FROM revoked_access r 
             JOIN users u ON u.id = r.citizen_id
-            WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [upahaar_id, doctorId], (err, revoked) => {
+            WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [targetId, doctorId], (err, revoked) => {
         if (err) return res.status(500).json({ message: 'Database error' });
         if (revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
 
         // 2. Find the citizen's profile
-        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+        db.get(`SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                 FROM users u 
                 LEFT JOIN medical_profiles m ON u.id = m.user_id 
                 WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'`, 
-        [upahaar_id], (err, patient) => {
+        [targetId], (err, patient) => {
             if (err) return res.status(500).json({ message: 'Database error' });
             if (!patient) return res.status(404).json({ message: 'Patient not found or invalid QR' });
 
-            const citizenId = patient.id || patient.user_id;
+            const citizenId = patient.citizen_user_id;
 
             if (source === 'qr') {
                 // 3. QR Scan: Bypass approval, auto-approved, return full data
@@ -137,11 +139,12 @@ export const searchPatientHistoryAI = async (req, res) => {
     }
 
     const doctorId = req.user.id;
+    const targetId = upahaar_id.trim().toUpperCase();
 
-    db.get(`SELECT * FROM revoked_access r JOIN users u ON u.id = r.citizen_id WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [upahaar_id, doctorId], (err, revoked) => {
+    db.get(`SELECT * FROM revoked_access r JOIN users u ON u.id = r.citizen_id WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [targetId, doctorId], (err, revoked) => {
         if (err || revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
 
-        db.get(`SELECT id, full_name FROM users WHERE upahaar_id = ? AND role = 'CITIZEN'`, [upahaar_id], (err, patient) => {
+        db.get(`SELECT id, full_name FROM users WHERE upahaar_id = ? AND role = 'CITIZEN'`, [targetId], (err, patient) => {
         if (err || !patient) return res.status(404).json({ message: 'Patient not found' });
 
         db.all(`SELECT created_at, ai_extracted_data, medicines, raw_ocr_text FROM prescriptions WHERE citizen_id = ? ORDER BY created_at ASC`, [patient.id], async (err, prescriptions) => {
@@ -283,17 +286,19 @@ export const checkAccessStatus = (req, res) => {
 
         if (log.status === 'APPROVED' || log.status === 'ACKNOWLEDGED') {
             // Fetch and return the full patient data
-            db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+            db.get(`SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                     FROM users u 
                     LEFT JOIN medical_profiles m ON u.id = m.user_id 
                     WHERE u.id = ? AND u.role = 'CITIZEN'`, 
             [log.citizen_id], (err, patient) => {
                 if (err || !patient) return res.status(500).json({ message: 'Error fetching patient profile' });
 
-                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [patient.id], (err, prescriptions) => {
+                const citizenId = patient.citizen_user_id;
+
+                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
                     if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
 
-                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [patient.id], (err, vitals) => {
+                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
                         if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
 
                         res.json({

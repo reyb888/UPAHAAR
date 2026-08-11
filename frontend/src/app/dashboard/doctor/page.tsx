@@ -96,7 +96,7 @@ export default function DoctorDashboard() {
       const pollStatus = async () => {
         try {
           const token = localStorage.getItem('upahaar_token');
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/access-status/${requestId}`, {
+          const response = await fetch(`/api/doctors/access-status/${requestId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -250,7 +250,7 @@ export default function DoctorDashboard() {
     
     try {
       const token = localStorage.getItem('upahaar_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan-face`, {
+      const response = await fetch(`/api/doctors/scan-face`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64Image })
@@ -284,7 +284,7 @@ export default function DoctorDashboard() {
     if (logId) {
       const token = localStorage.getItem('upahaar_token');
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/close-access`, {
+        await fetch(`/api/doctors/close-access`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -323,7 +323,7 @@ export default function DoctorDashboard() {
     const token = localStorage.getItem('upahaar_token');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${id}?source=${source}`, {
+      const response = await fetch(`/api/doctors/scan/${id}?source=${source}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -392,7 +392,7 @@ export default function DoctorDashboard() {
       const logId = sessionStorage.getItem('active_log_id');
       const token = localStorage.getItem('upahaar_token');
       if (logId && token) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/close-access`, {
+        fetch(`/api/doctors/close-access`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -419,7 +419,7 @@ export default function DoctorDashboard() {
     setAiSearchResult(null);
     try {
       const token = localStorage.getItem('upahaar_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${patientData.patient.upahaar_id}/ai-search`, {
+      const response = await fetch(`/api/doctors/scan/${patientData.patient.upahaar_id}/ai-search`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -501,7 +501,7 @@ export default function DoctorDashboard() {
                          placeholder="UPHR-123456" 
                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-medical-blue outline-none"
                          value={upahaarId}
-                         onChange={(e) => setUpahaarId(e.target.value)}
+                         onChange={(e) => setUpahaarId(e.target.value.toUpperCase())}
                        />
                        <button type="submit" disabled={loading} className="bg-gray-800 hover:bg-black text-white px-4 rounded-lg flex justify-center items-center"><Search size={18}/></button>
                      </div>
@@ -598,17 +598,32 @@ export default function DoctorDashboard() {
                    <p className="text-gray-500 font-semibold">Decrypting medical records...</p>
                  </div>
                ) : error ? (
-                 <div className="bg-red-50 p-10 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                   <AlertCircle size={48} className="text-red-400 mb-4" />
-                   <h2 className="text-xl font-bold text-gray-800 mb-2">Access Denied</h2>
-                   <p className="text-gray-600 text-center">{error}</p>
-                   <button 
-                     onClick={handleClearPatient}
-                     className="mt-6 text-sm text-red-500 font-semibold hover:underline"
-                   >
-                     Clear Patient
-                   </button>
-                 </div>
+                  <div className={`p-10 rounded-2xl shadow-sm border flex flex-col items-center justify-center h-full min-h-[400px] text-center ${
+                    error.includes('Consent Revoked') || error.includes('declined') 
+                      ? 'bg-gradient-to-br from-red-50 to-rose-50/30 border-red-100' 
+                      : error.includes('not found') || error.includes('invalid')
+                        ? 'bg-gradient-to-br from-amber-50 to-orange-50/30 border-amber-100'
+                        : 'bg-gradient-to-br from-slate-50 to-gray-50/30 border-gray-200'
+                  }`}>
+                    <AlertCircle size={48} className={`mb-4 ${
+                      error.includes('Consent Revoked') || error.includes('declined') ? 'text-red-400' 
+                      : error.includes('not found') || error.includes('invalid') ? 'text-amber-400'
+                      : 'text-gray-400'
+                    }`} />
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">{
+                      error.includes('Consent Revoked') || error.includes('declined') ? 'Access Denied'
+                      : error.includes('not found') || error.includes('invalid') ? 'Patient Not Found'
+                      : error.includes('connection') || error.includes('fetch') ? 'Connection Error'
+                      : 'Request Failed'
+                    }</h2>
+                    <p className="text-gray-600 text-center max-w-sm text-sm leading-relaxed">{error}</p>
+                    <button 
+                      onClick={handleClearPatient}
+                      className="mt-6 px-6 py-2.5 bg-gray-800 hover:bg-black text-white font-bold rounded-xl transition-all shadow-md text-xs cursor-pointer"
+                    >
+                      Return to Workspace
+                    </button>
+                  </div>
                ) : patientData ? (
                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                     
