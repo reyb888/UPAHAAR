@@ -34,3 +34,27 @@ Params: []
 Error: SQLITE_ERROR: duplicate column name: emergency_contacts
 Error: SQLITE_ERROR: duplicate column name: emergency_contacts
 
+[2026-08-11T17:23:23.414Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT
+Params: []
+Error: column "raw_ocr_text" of relation "prescriptions" already exists
+error: column "raw_ocr_text" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-11T17:23:23.416Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT
+Params: []
+Error: column "emergency_contacts" of relation "medical_profiles" already exists
+error: column "emergency_contacts" of relation "medical_profiles" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-11T17:23:31.852Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN medicines TEXT
+Params: []
+Error: column "medicines" of relation "prescriptions" already exists
+error: column "medicines" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+

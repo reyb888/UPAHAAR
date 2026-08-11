@@ -482,7 +482,8 @@ export default function CitizenDashboard() {
               {/* Security Setup */}
               <TwoFactorSetup />
             </div>
-          )}
+          </div>
+        )}
         </div>
       </main>
       {/* Remove Medication Confirmation Modal */}

@@ -47,6 +47,8 @@ export const scanPatientQr = (req, res) => {
 
                         res.json({
                             status: 'APPROVED',
+                            method: 'QR_SCAN',
+                            log_id: logId,
                             patient,
                             timeline: prescriptions,
                             vitals: vitals || []
@@ -54,29 +56,69 @@ export const scanPatientQr = (req, res) => {
                     });
                 });
             } else {
-                // 4. Manual search or face recognition: requires approval
-                const logId = uuidv4();
-                const method = source === 'face' ? 'FACE_SCAN' : 'MANUAL_LOOKUP';
-                console.log(`[ACCESS_LOG] ${method} pending. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
-                
-                db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
-                    [logId, citizenId, doctorId, method, 'PENDING'], (logErr) => {
-                        if (logErr) {
-                            console.error("[ACCESS_LOG] Failed to log access event:", logErr);
-                            return res.status(500).json({ message: 'Database error logging access request' });
-                        }
-                        
-                        res.json({
-                            status: 'PENDING',
-                            message: 'Access request sent. Awaiting patient approval.',
-                            request_id: logId,
-                            patient: {
-                                full_name: patient.full_name,
-                                upahaar_id: patient.upahaar_id
-                            }
+                // 4. Manual search or face recognition: check active approved session first (expires in 30 minutes)
+                db.get(`
+                    SELECT * FROM access_logs 
+                    WHERE doctor_id = ? AND citizen_id = ? AND logged_out_at IS NULL AND status IN ('APPROVED', 'ACKNOWLEDGED', 'QR_SCAN')
+                    ORDER BY created_at DESC LIMIT 1
+                `, [doctorId, citizenId], (err, activeLog) => {
+                    if (err) return res.status(500).json({ message: 'Database error' });
+
+                    const now = new Date();
+                    const isSessionValid = activeLog && (now - new Date(activeLog.created_at) < 30 * 60 * 1000);
+
+                    if (isSessionValid) {
+                        // Return the active session immediately!
+                        db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+                            if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
+
+                            db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                                if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
+
+                                res.json({
+                                    status: 'APPROVED',
+                                    method: activeLog.method,
+                                    log_id: activeLog.id,
+                                    patient,
+                                    timeline: prescriptions,
+                                    vitals: vitals || []
+                                });
+                            });
                         });
+                    } else {
+                        // If there is an expired activeLog, close it at its expiry time (30 minutes after created_at)
+                        if (activeLog) {
+                            const expiryTime = new Date(new Date(activeLog.created_at).getTime() + 30 * 60 * 1000).toISOString();
+                            db.run(`UPDATE access_logs SET logged_out_at = ? WHERE id = ?`, [expiryTime, activeLog.id], (updErr) => {
+                                if (updErr) console.error("[ACCESS_LOG] Failed to close expired log:", updErr);
+                            });
+                        }
+
+                        // Create a new PENDING request
+                        const logId = uuidv4();
+                        const method = source === 'face' ? 'FACE_SCAN' : 'MANUAL_LOOKUP';
+                        console.log(`[ACCESS_LOG] ${method} pending. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
+                        
+                        db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
+                            [logId, citizenId, doctorId, method, 'PENDING'], (logErr) => {
+                                if (logErr) {
+                                    console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                                    return res.status(500).json({ message: 'Database error logging access request' });
+                                }
+                                
+                                res.json({
+                                    status: 'PENDING',
+                                    message: 'Access request sent. Awaiting patient approval.',
+                                    request_id: logId,
+                                    patient: {
+                                        full_name: patient.full_name,
+                                        upahaar_id: patient.upahaar_id
+                                    }
+                                });
+                            }
+                        );
                     }
-                );
+                });
             }
         });
     });
@@ -256,6 +298,8 @@ export const checkAccessStatus = (req, res) => {
 
                         res.json({
                             status: 'APPROVED',
+                            method: log.method,
+                            log_id: log.id,
                             patient,
                             timeline: prescriptions,
                             vitals: vitals || []
@@ -268,5 +312,26 @@ export const checkAccessStatus = (req, res) => {
         } else {
             res.json({ status: 'PENDING', message: 'Awaiting patient approval.' });
         }
+    });
+};
+
+export const closeAccess = (req, res) => {
+    const doctorId = req.user.id;
+    const { log_id } = req.body;
+
+    if (!log_id) {
+        return res.status(400).json({ message: 'Log ID is required' });
+    }
+
+    db.run(`
+        UPDATE access_logs 
+        SET logged_out_at = CURRENT_TIMESTAMP 
+        WHERE id = ? AND doctor_id = ? AND logged_out_at IS NULL
+    `, [log_id, doctorId], function(err) {
+        if (err) {
+            console.error("[CLOSE_ACCESS] Error closing access:", err);
+            return res.status(500).json({ message: 'Error closing access session' });
+        }
+        res.json({ message: 'Access session closed successfully' });
     });
 };

@@ -320,10 +320,10 @@ export const getNearbyPharmacies = async (req, res) => {
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;
     db.all(`
-        SELECT a.id, a.method, a.status, a.created_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
+        SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
         FROM access_logs a
         JOIN users u ON a.doctor_id = u.id
-        WHERE a.citizen_id = ?
+        WHERE a.citizen_id = ? AND (a.deleted_by_citizen = 0 OR a.deleted_by_citizen IS NULL)
         ORDER BY a.created_at DESC
     `, [citizenId], (err, logs) => {
         if (err) {
@@ -353,11 +353,28 @@ export const revokeNotificationAccess = (req, res) => {
         db.run(`INSERT OR IGNORE INTO revoked_access (citizen_id, doctor_id) VALUES (?, ?)`, [citizenId, log.doctor_id], (err2) => {
             if (err2) return res.status(500).json({ message: 'Error revoking access' });
             
-            db.run(`UPDATE access_logs SET status = 'REVOKED' WHERE id = ?`, [logId], (err3) => {
+            db.run(`UPDATE access_logs SET status = 'REVOKED', logged_out_at = COALESCE(logged_out_at, CURRENT_TIMESTAMP) WHERE id = ?`, [logId], (err3) => {
                 if (err3) console.error("Error updating log status", err3);
                 res.json({ message: 'Access revoked successfully' });
             });
         });
+    });
+};
+
+export const deleteNotification = (req, res) => {
+    const citizenId = req.user.id;
+    const logId = req.params.id;
+
+    db.run(`
+        UPDATE access_logs 
+        SET deleted_by_citizen = 1 
+        WHERE id = ? AND citizen_id = ?
+    `, [logId, citizenId], function(err) {
+        if (err) {
+            console.error("[DELETE_NOTIFICATION] Error:", err);
+            return res.status(500).json({ message: 'Error deleting notification' });
+        }
+        res.json({ message: 'Notification deleted successfully' });
     });
 };
 
