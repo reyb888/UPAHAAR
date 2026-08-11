@@ -105,6 +105,36 @@ export const registerUser = async (req, res) => {
     }
 };
 
+export const confirmEmail = async (req, res) => {
+    const { token_hash, type } = req.body;
+
+    if (!token_hash || !type) {
+        return res.status(400).json({ message: 'Missing token_hash or type' });
+    }
+
+    if (!supabase) {
+        return res.status(400).json({ message: 'Supabase Auth is not configured' });
+    }
+
+    try {
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
+
+        if (error) {
+            console.error("[Confirm] verifyOtp Error:", error);
+            return res.status(400).json({ message: error.message });
+        }
+
+        console.log(`[Confirm] Email verified successfully for: ${data.user?.email}`);
+        return res.status(200).json({
+            message: 'Email verified successfully. You can now log in.',
+            email: data.user?.email
+        });
+    } catch (error) {
+        console.error("[Confirm] verifyOtp unexpected error:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 export const loginUser = async (req, res) => {
     const { upahaar_id, password, totp_code } = req.body;
     
