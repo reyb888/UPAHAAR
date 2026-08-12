@@ -151,6 +151,11 @@ export default function DoctorDashboard() {
               setIsAccessDenied(true);
               setError("Access request was denied/revoked by the patient.");
             }
+          } else if (response.status === 401) {
+            // Token expired - redirect to login
+            localStorage.removeItem('upahaar_token');
+            sessionStorage.clear();
+            window.location.href = '/auth/doctor/login';
           }
         } catch (err) {
           console.error("Polling error:", err);
@@ -337,8 +342,13 @@ export default function DoctorDashboard() {
         } else {
           setPatientData(data);
           setActiveLogId(data.log_id);
-          sessionStorage.setItem('active_log_id', data.log_id || '');
-          sessionStorage.setItem('active_patient_id', id);
+          // Store session tracking info - only if we have valid data
+          if (data.log_id) {
+            sessionStorage.setItem('active_log_id', data.log_id);
+          }
+          if (id) {
+            sessionStorage.setItem('active_patient_id', id);
+          }
           
           // Combine medicines from all prescriptions
           const timelineData = data.timeline || [];
@@ -364,6 +374,11 @@ export default function DoctorDashboard() {
           });
           setActiveMedicines(allMedicines);
         }
+      } else if (response.status === 401) {
+        // Token expired - redirect to login
+        localStorage.removeItem('upahaar_token');
+        sessionStorage.clear();
+        window.location.href = '/auth/doctor/login';
       } else {
         setError(data.message || "Failed to fetch patient data.");
         sessionStorage.removeItem('active_patient_id');
@@ -388,25 +403,7 @@ export default function DoctorDashboard() {
       fetchPatientData(savedPatientId);
     }
 
-    const handleUnload = () => {
-      const logId = sessionStorage.getItem('active_log_id');
-      const token = localStorage.getItem('upahaar_token');
-      if (logId && token) {
-        fetch(`/api/doctors/close-access`, {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ log_id: logId }),
-          keepalive: true
-        }).catch(() => {});
-      }
-    };
-    window.addEventListener('beforeunload', handleUnload);
-
     return () => {
-      window.removeEventListener('beforeunload', handleUnload);
       stopScanner();
       stopFaceScanner();
     };
