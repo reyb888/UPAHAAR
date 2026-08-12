@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera } from 'lucide-react';
+import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera, Zap, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import Script from 'next/script';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
@@ -629,13 +629,13 @@ export default function DoctorDashboard() {
                     
                     {/* Access Source Banner */}
                     {patientData.method === 'QR_SCAN' ? (
-                      <div className="bg-gradient-to-r from-purple-650 to-indigo-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-purple-500/30">
-                        <span className="text-lg">⚡</span>
+                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-purple-400/40">
+                        <Zap size={18} className="shrink-0" />
                         <span>Emergency Access Granted via QR Code Scanner</span>
                       </div>
                     ) : (
-                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-emerald-500/30">
-                        <span className="text-lg">✓</span>
+                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-emerald-400/40">
+                        <ShieldCheck size={18} className="shrink-0" />
                         <span>Clinical Access Granted via Patient Authorization</span>
                       </div>
                     )}

@@ -209,7 +209,7 @@ export default function CitizenRegister() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Phone Number (For OTP)</label>
+              <label className="text-sm font-semibold text-gray-700">Phone Number</label>
               <input 
                 type="tel" required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50"

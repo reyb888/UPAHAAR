@@ -90,41 +90,41 @@ export default function CitizenNotifications() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-[100dvh] bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row">
       <CitizenSidebar activePage="notifications" />
       
       <main className="flex-1 p-6 lg:p-10">
         <div className="max-w-4xl mx-auto space-y-8">
-          <header className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+          <header className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Bell size={24} className="text-medical-blue animate-swing" /> Notifications
+              <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <Bell size={24} className="text-medical-blue dark:text-blue-400 animate-swing" /> Notifications
               </h1>
-              <p className="text-gray-500">Review historical consent logs and manage active doctor access requests.</p>
+              <p className="text-gray-500 dark:text-gray-400">Review historical consent logs and manage active doctor access requests.</p>
             </div>
           </header>
 
           {loading ? (
             <div className="text-center p-20">
-              <div className="w-12 h-12 border-4 border-medical-blue border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-500 font-semibold">Loading your notifications...</p>
+              <div className="w-12 h-12 border-4 border-medical-blue dark:border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-500 dark:text-gray-400 font-semibold">Loading your notifications...</p>
             </div>
           ) : error ? (
-            <div className="bg-red-50 p-6 rounded-xl text-red-600 text-center border border-red-100">
+            <div className="bg-red-50 dark:bg-red-950/40 p-6 rounded-xl text-red-600 dark:text-red-400 text-center border border-red-100 dark:border-red-500/30">
               {error}
             </div>
           ) : notifications.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-gray-100 text-center shadow-sm">
-              <Bell size={48} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-bold text-gray-800">No Notifications</h3>
-              <p className="text-gray-500">You have no pending doctor access requests or logs.</p>
+            <div className="bg-white dark:bg-slate-900 p-12 rounded-2xl border border-gray-100 dark:border-slate-800 text-center shadow-sm">
+              <Bell size={48} className="mx-auto text-gray-300 dark:text-slate-700 mb-4" />
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">No Notifications</h3>
+              <p className="text-gray-500 dark:text-gray-400">You have no pending doctor access requests or logs.</p>
             </div>
           ) : (
             <div className="space-y-8">
               
               {/* Past Logs Repository */}
               <div>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Access History Repository</h3>
+                <h3 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Access History Repository</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <AnimatePresence>
                     {pastLogs.map((log) => {
@@ -132,24 +132,24 @@ export default function CitizenNotifications() {
                       const isRevoked = log.status === 'REVOKED';
                       const isApproved = log.status === 'APPROVED' || log.status === 'ACKNOWLEDGED';
 
-                      let cardStyle = "bg-white border-gray-100";
-                      let badgeStyle = "bg-gray-150 text-gray-600";
+                      let cardStyle = "bg-white border-gray-100 dark:bg-slate-900 dark:border-slate-800";
+                      let badgeStyle = "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300";
                       let badgeText = log.status;
                       let statusMsgText = "Access status: Unspecified";
 
                       if (isQr) {
-                        cardStyle = "bg-gradient-to-br from-purple-50/50 to-white border-purple-100/70 shadow-sm shadow-purple-50/10";
-                        badgeStyle = "bg-purple-100 text-purple-700";
+                        cardStyle = "bg-gradient-to-br from-purple-50/50 to-white border-purple-100/70 shadow-sm shadow-purple-50/10 dark:from-purple-950/40 dark:to-slate-900 dark:border-purple-500/30 dark:shadow-none";
+                        badgeStyle = "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300";
                         badgeText = "Emergency Access";
                         statusMsgText = "Emergency access granted";
                       } else if (isRevoked) {
-                        cardStyle = "bg-gradient-to-br from-red-50/40 to-white border-red-100/70 shadow-sm shadow-red-50/10";
-                        badgeStyle = "bg-red-100 text-red-700";
+                        cardStyle = "bg-gradient-to-br from-red-50/40 to-white border-red-100/70 shadow-sm shadow-red-50/10 dark:from-red-950/40 dark:to-slate-900 dark:border-red-500/30 dark:shadow-none";
+                        badgeStyle = "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300";
                         badgeText = "Access Blocked";
                         statusMsgText = "Denied";
                       } else if (isApproved) {
-                        cardStyle = "bg-gradient-to-br from-emerald-50/40 to-white border-emerald-100/70 shadow-sm shadow-emerald-50/10";
-                        badgeStyle = "bg-emerald-100 text-emerald-700";
+                        cardStyle = "bg-gradient-to-br from-emerald-50/40 to-white border-emerald-100/70 shadow-sm shadow-emerald-50/10 dark:from-emerald-950/40 dark:to-slate-900 dark:border-emerald-500/30 dark:shadow-none";
+                        badgeStyle = "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300";
                         badgeText = "Access Granted";
                         statusMsgText = "Allowed";
                       }
@@ -166,7 +166,7 @@ export default function CitizenNotifications() {
                           {/* Red Cross Delete Button */}
                           <button 
                             onClick={() => { setDeletingLogId(log.id); setShowDeleteConfirm(true); }}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-all duration-200"
+                            className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 p-1.5 rounded-full transition-all duration-200"
                             title="Delete access history item"
                           >
                             <X size={16} />
@@ -175,17 +175,17 @@ export default function CitizenNotifications() {
                           <div>
                             <div className="flex justify-between items-start gap-4 mb-4 pr-6">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-50 text-medical-blue rounded-full flex items-center justify-center font-bold text-sm shrink-0 border border-blue-100">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-slate-800 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border border-blue-100 dark:border-slate-700">
                                   Dr.
                                 </div>
                                 <div>
-                                  <h4 className="font-bold text-gray-800 text-sm">
+                                  <h4 className="font-bold text-gray-800 dark:text-white text-sm">
                                     Dr. {log.doctor_name}
                                   </h4>
-                                  <p className="text-[11px] text-gray-500 mt-0.5">
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                     UPAHAAR ID: <span className="font-mono font-semibold">{log.doctor_upahaar_id || 'N/A'}</span>
                                   </p>
-                                  <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
+                                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
                                     <Eye size={12} /> Requested via {log.method === 'QR_SCAN' ? 'QR Code' : log.method === 'FACE_SCAN' ? 'Facial Recognition' : 'Manual Lookup'}
                                   </p>
                                 </div>
@@ -193,31 +193,31 @@ export default function CitizenNotifications() {
                             </div>
 
                             {/* Shared Info */}
-                            <div className="space-y-2.5 py-4 border-t border-b border-gray-100 my-4 text-xs">
+                            <div className="space-y-2.5 py-4 border-t border-b border-gray-100 dark:border-slate-800 my-4 text-xs">
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-500 flex items-center gap-1"><Clock size={14} className="text-gray-400" /> Date requested</span>
-                                <span className="font-semibold text-gray-800">{new Date(log.created_at).toLocaleString()}</span>
+                                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1"><Clock size={14} className="text-gray-400 dark:text-gray-500" /> Date requested</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">{new Date(log.created_at).toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-500 flex items-center gap-1"><ShieldCheck size={14} className="text-gray-400" /> Data Shared</span>
-                                <span className="font-semibold text-gray-800">Timeline • Meds • Vitals</span>
+                                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1"><ShieldCheck size={14} className="text-gray-400 dark:text-gray-500" /> Data Shared</span>
+                                <span className="font-semibold text-gray-800 dark:text-gray-200">Timeline • Meds • Vitals</span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-500 flex items-center gap-1"><ShieldAlert size={14} className="text-gray-400" /> Status Badge</span>
+                                <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1"><ShieldAlert size={14} className="text-gray-400 dark:text-gray-500" /> Status Badge</span>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeStyle}`}>{badgeText}</span>
                               </div>
                             </div>
                           </div>
 
                           <div className="mt-2 flex justify-between items-center">
-                            <span className={`text-xs ${isQr ? 'text-purple-600 font-bold' : 'text-gray-400 font-medium'}`}>
+                            <span className={`text-xs ${isQr ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-gray-400 dark:text-gray-500 font-medium'}`}>
                               {isQr ? '⚡ ' : ''}{statusMsgText}
                             </span>
                             
                             {!isQr && !isRevoked && (
                               <button 
                                 onClick={() => handleNotificationAction(log.id, 'revoke')}
-                                className="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 font-bold rounded-lg transition-colors text-xs"
+                                className="px-3 py-1.5 border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-300 dark:hover:border-red-500/60 font-bold rounded-lg transition-colors text-xs"
                                 title="Terminate profile access rights for this doctor"
                               >
                                 Terminate Access
