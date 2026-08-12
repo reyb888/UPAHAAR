@@ -246,35 +246,35 @@ export default function CitizenNotifications() {
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="max-w-md w-full bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-150 flex flex-col"
             >
-              {/* Blue Ribbon UPAHAAR Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white text-center relative flex flex-col items-center">
-                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-3 border border-white/20">
-                  <User size={32} className="text-white" />
-                </div>
+{/* Blue Ribbon UPAHAAR Header */}
+               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-slate-900 dark:to-slate-950 p-6 text-white dark:text-white text-center relative flex flex-col items-center">
+                 <div className="w-16 h-16 bg-white/10 dark:bg-slate-800/20 rounded-full flex items-center justify-center mb-3 border border-white/20 dark:border-slate-600/20">
+                   <User size={32} className="text-white dark:text-white" />
+                 </div>
                 <h2 className="text-2xl font-extrabold tracking-tight">
                   Dr. {pendingRequests[0].doctor_name}
                 </h2>
-                <div className="bg-white/20 text-white border border-white/30 text-xs px-3 py-1 rounded-full mt-2 font-mono font-semibold">
-                  {pendingRequests[0].doctor_upahaar_id || 'UPAHAAR ID'}
-                </div>
+<div className="bg-white/20 dark:bg-slate-800/20 text-white dark:text-white border border-white/30 dark:border-slate-600/30 text-xs px-3 py-1 rounded-full mt-2 font-mono font-semibold">
+  {pendingRequests[0].doctor_upahaar_id || 'UPAHAAR ID'}
+</div>
               </div>
 
               {/* White Box under it */}
               <div className="p-6 bg-white text-center flex flex-col items-center">
-                <div className="bg-gray-50 border border-gray-150 rounded-2xl p-5 w-full text-gray-600 font-medium text-sm mb-6 leading-relaxed">
-                  This doctor wants to access your profile.
-                </div>
+<div className="bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-600 rounded-2xl p-5 w-full text-gray-600 dark:text-gray-300 font-medium text-sm mb-6 leading-relaxed">
+                   This doctor wants to access your profile.
+                 </div>
                 
                 <div className="flex gap-4 w-full">
                   <button 
                     onClick={() => handleNotificationAction(pendingRequests[0].id, 'acknowledge')}
-                    className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold rounded-xl transition-all shadow-md text-sm cursor-pointer"
+                    className="flex-1 py-3 bg-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-extrabold rounded-xl transition-all shadow-md text-sm cursor-pointer"
                   >
                     Accept
                   </button>
                   <button 
                     onClick={() => handleNotificationAction(pendingRequests[0].id, 'revoke')}
-                    className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-extrabold rounded-xl transition-all shadow-md text-sm cursor-pointer"
+                    className="flex-1 py-3 bg-rose-500 dark:bg-rose-600 dark:hover:bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-extrabold rounded-xl transition-all shadow-md text-sm cursor-pointer"
                   >
                     Deny
                   </button>
@@ -305,13 +305,13 @@ export default function CitizenNotifications() {
               <div className="flex gap-3">
                 <button 
                   onClick={() => { setShowDeleteConfirm(false); setDeletingLogId(null); }}
-                  className="flex-1 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 font-bold rounded-xl transition-colors text-xs"
+                  className="flex-1 py-2.5 border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold rounded-xl transition-colors text-xs"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleDeleteNotification}
-                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors text-xs shadow-sm"
+                  className="flex-1 py-2.5 bg-red-600 dark:bg-red-700 dark:hover:bg-red-800 hover:bg-red-700 text-white font-bold rounded-xl transition-colors text-xs shadow-sm"
                 >
                   Delete
                 </button>

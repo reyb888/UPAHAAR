@@ -21,7 +21,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (localStorage.getItem('upahaar_theme') === 'dark') {
+                const isAuthPage = window.location.pathname.startsWith('/auth');
+                if (!isAuthPage && localStorage.getItem('upahaar_theme') === 'dark') {
                   document.documentElement.classList.add('dark');
                 } else {
                   document.documentElement.classList.remove('dark');
