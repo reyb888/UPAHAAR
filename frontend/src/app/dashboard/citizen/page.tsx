@@ -506,7 +506,6 @@ export default function CitizenDashboard() {
                 )}
               </div>
               </div>
-            </div>
 
             {/* Upload Column */}
             <div className="space-y-6">
