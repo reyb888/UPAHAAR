@@ -238,7 +238,7 @@ export const getNearbyPharmacies = async (req, res) => {
 
     try {
         const params = new URLSearchParams({
-            categories: 'pharmacy',
+            categories: 'healthcare.pharmacy',
             filter: `circle:${lng},${lat},5000`,
             limit: '20',
             apiKey
