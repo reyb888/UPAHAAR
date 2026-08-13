@@ -96,7 +96,7 @@ export default function CitizenQRCard() {
 
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 relative"
+            className="upahaar-card bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 relative"
           >
             {/* Card Header */}
             <div className="bg-gradient-to-r from-medical-blue to-medical-dark p-6 text-white text-center relative overflow-hidden">
@@ -151,7 +151,7 @@ export default function CitizenQRCard() {
             </div>
 
             {/* Emergency Info */}
-            <div className="bg-red-50 p-6 flex flex-col gap-4 border-t border-red-100">
+            <div className="upahaar-card-emergency bg-red-50 p-6 flex flex-col gap-4 border-t border-red-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-red-700">
                   <AlertCircle size={20} />
