@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X } from 'lucide-react';
+import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
@@ -13,6 +13,8 @@ export default function CitizenDashboard() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -223,6 +225,15 @@ export default function CitizenDashboard() {
     initData();
   }, []);
 
+  useEffect(() => {
+    if (timeline.length > 0) {
+      const maxPage = Math.ceil(timeline.length / itemsPerPage);
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+    }
+  }, [timeline.length, currentPage]);
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
@@ -246,6 +257,7 @@ export default function CitizenDashboard() {
       if (response.ok) {
         alert("Prescription uploaded and processed by AI successfully!");
         setFile(null);
+        setCurrentPage(1);
         fetchTimeline(); // Refresh the timeline to show the new document
       } else {
         alert("Upload failed: " + data.message);
@@ -257,6 +269,12 @@ export default function CitizenDashboard() {
       setIsUploading(false);
     }
   };
+
+  const totalPages = Math.ceil(timeline.length / itemsPerPage);
+  const activePage = Math.min(currentPage, Math.max(1, totalPages));
+  const startIndex = (activePage - 1) * itemsPerPage;
+  const endIndex = Math.min(activePage * itemsPerPage, timeline.length);
+  const paginatedTimeline = timeline.slice(startIndex, endIndex);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -390,57 +408,103 @@ export default function CitizenDashboard() {
                 {timeline.length === 0 ? (
                    <p className="text-gray-500 italic p-6 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">No prescriptions uploaded yet. Use the tool on the right to upload your first record!</p>
                 ) : (
-                  timeline.map((item) => (
-                    <motion.div 
-                      initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                      key={item.id} 
-                      className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-medical-blue relative"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg text-gray-800">Prescription Record</h3>
-                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <button 
-                          onClick={() => handleDeleteRecord(item.id)}
-                          className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded-md transition-colors"
-                          title="Delete Record"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-center mb-3">
-                        <button 
-                          onClick={() => { setSelectedDoc(item); setShowDocModal(true); }} 
-                          className="text-sm font-semibold text-medical-blue hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <FileText size={16} /> View Original Document
-                        </button>
-                        {item.raw_ocr_text && (
-                          <div className="flex bg-gray-100 rounded-lg p-1">
-                            <button 
-                              onClick={() => setViewModes(prev => ({ ...prev, [item.id]: 'summary' }))}
-                              className={`text-xs px-3 py-1 rounded-md font-bold transition-colors ${viewModes[item.id] !== 'raw' ? 'bg-white text-medical-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            >AI Summary</button>
-                            <button 
-                              onClick={() => setViewModes(prev => ({ ...prev, [item.id]: 'raw' }))}
-                              className={`text-xs px-3 py-1 rounded-md font-bold transition-colors ${viewModes[item.id] === 'raw' ? 'bg-white text-medical-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            >Original OCR</button>
+                  <>
+                    {paginatedTimeline.map((item) => (
+                      <motion.div 
+                        initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                        key={item.id} 
+                        className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-medical-blue relative"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-gray-800">Prescription Record</h3>
+                            <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </span>
                           </div>
-                        )}
+                          <button 
+                            onClick={() => handleDeleteRecord(item.id)}
+                            className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <div className="flex justify-between items-center mb-3">
+                          <button 
+                            onClick={() => { setSelectedDoc(item); setShowDocModal(true); }} 
+                            className="text-sm font-semibold text-medical-blue hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <FileText size={16} /> View Original Document
+                          </button>
+                          {item.raw_ocr_text && (
+                            <div className="flex bg-gray-100 rounded-lg p-1">
+                              <button 
+                                onClick={() => setViewModes(prev => ({ ...prev, [item.id]: 'summary' }))}
+                                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors ${viewModes[item.id] !== 'raw' ? 'bg-white text-medical-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                              >AI Summary</button>
+                              <button 
+                                onClick={() => setViewModes(prev => ({ ...prev, [item.id]: 'raw' }))}
+                                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors ${viewModes[item.id] === 'raw' ? 'bg-white text-medical-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                              >Original OCR</button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="bg-blue-50 p-4 rounded-xl mt-3">
+                          {viewModes[item.id] === 'raw' ? (
+                            <p className="text-sm text-gray-700 font-mono whitespace-pre-line leading-relaxed"><span className="font-bold text-medical-dark block mb-2 font-sans tracking-wide uppercase text-xs">Raw OCR Transcription:</span>{item.raw_ocr_text}</p>
+                          ) : (
+                            <p className="text-sm text-medical-dark font-medium whitespace-pre-line"><span className="font-bold text-medical-dark block mb-1 tracking-wide uppercase text-xs">AI Summary:</span>{item.ai_extracted_data}</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {totalPages > 1 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm gap-4 mt-6">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                          Showing <span className="font-bold text-gray-850 dark:text-white">{startIndex + 1}</span> - <span className="font-bold text-gray-850 dark:text-white">{endIndex}</span> of <span className="font-bold text-gray-850 dark:text-white">{timeline.length}</span> prescriptions
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={activePage === 1}
+                            className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                            title="Previous Page"
+                          >
+                            <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
+                          </button>
+                          
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                              type="button"
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-9 h-9 rounded-xl font-bold text-sm transition-all flex items-center justify-center ${
+                                page === activePage
+                                  ? 'bg-medical-blue text-white shadow-md shadow-blue-500/20'
+                                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent dark:hover:border-slate-700'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={activePage === totalPages}
+                            className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                            title="Next Page"
+                          >
+                            <ChevronRight size={16} className="text-gray-600 dark:text-gray-300" />
+                          </button>
+                        </div>
                       </div>
-                      
-                      <div className="bg-blue-50 p-4 rounded-xl mt-3">
-                        {viewModes[item.id] === 'raw' ? (
-                          <p className="text-sm text-gray-700 font-mono whitespace-pre-line leading-relaxed"><span className="font-bold text-medical-dark block mb-2 font-sans tracking-wide uppercase text-xs">Raw OCR Transcription:</span>{item.raw_ocr_text}</p>
-                        ) : (
-                          <p className="text-sm text-medical-dark font-medium whitespace-pre-line"><span className="font-bold text-medical-dark block mb-1 tracking-wide uppercase text-xs">AI Summary:</span>{item.ai_extracted_data}</p>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))
+                    )}
+                  </>
                 )}
               </div>
             </div>
