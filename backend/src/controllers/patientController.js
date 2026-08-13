@@ -9,7 +9,7 @@ export const getProfile = (req, res) => {
     
     db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
             FROM users u 
-            JOIN medical_profiles m ON u.id = m.user_id 
+            LEFT JOIN medical_profiles m ON u.id = m.user_id 
             WHERE u.id = ?`, [userId], (err, profile) => {
         if (err || !profile) {
             return res.status(404).json({ message: 'Profile not found' });
