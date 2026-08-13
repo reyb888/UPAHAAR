@@ -451,6 +451,8 @@ export default function DoctorDashboard() {
     } finally {
       setAiSearchLoading(false);
     }
+  };
+
   const totalPages = patientData?.timeline ? Math.ceil(patientData.timeline.length / itemsPerPage) : 0;
   const activePage = Math.min(currentPage, Math.max(1, totalPages));
   const startIndex = (activePage - 1) * itemsPerPage;
