@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera, Zap, ShieldCheck } from 'lucide-react';
+import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera, Zap, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Script from 'next/script';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
@@ -31,6 +31,9 @@ export default function DoctorDashboard() {
   // Document Modal State
   const [selectedDoc, setSelectedDoc] = useState<any>(null);
   const [showDocModal, setShowDocModal] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
 
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -409,6 +412,19 @@ export default function DoctorDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [patientData?.patient?.upahaar_id]);
+
+  useEffect(() => {
+    if (patientData?.timeline?.length > 0) {
+      const maxPage = Math.ceil(patientData.timeline.length / itemsPerPage);
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+    }
+  }, [patientData?.timeline?.length, currentPage]);
+
 
   const handleAiSearch = async () => {
     if (!aiSearchQuery.trim() || !patientData) return;
@@ -435,7 +451,11 @@ export default function DoctorDashboard() {
     } finally {
       setAiSearchLoading(false);
     }
-  };
+  const totalPages = patientData?.timeline ? Math.ceil(patientData.timeline.length / itemsPerPage) : 0;
+  const activePage = Math.min(currentPage, Math.max(1, totalPages));
+  const startIndex = (activePage - 1) * itemsPerPage;
+  const endIndex = patientData?.timeline ? Math.min(activePage * itemsPerPage, patientData.timeline.length) : 0;
+  const paginatedTimeline = patientData?.timeline ? patientData.timeline.slice(startIndex, endIndex) : [];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -766,14 +786,58 @@ export default function DoctorDashboard() {
                     </div>
 
                     {/* Timeline */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 font-sans">
                        <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2"><Clock size={20} /> Historical Timeline</h3>
                        
+                       {totalPages > 1 && (
+                         <div className="flex flex-col sm:flex-row items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm gap-4 mb-6">
+                           <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                             Showing <span className="font-bold text-gray-800 dark:text-white">{startIndex + 1}</span> - <span className="font-bold text-gray-800 dark:text-white">{endIndex}</span> of <span className="font-bold text-gray-800 dark:text-white">{patientData.timeline.length}</span> prescriptions
+                           </div>
+                           <div className="flex items-center gap-1.5 font-sans">
+                             <button
+                               type="button"
+                               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                               disabled={activePage === 1}
+                               className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                               title="Previous Page"
+                             >
+                               <ChevronLeft size={16} className="text-gray-600 dark:text-gray-300" />
+                             </button>
+                             
+                             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                               <button
+                                 type="button"
+                                 key={page}
+                                 onClick={() => setCurrentPage(page)}
+                                 className={`w-9 h-9 rounded-xl font-bold text-sm transition-all flex items-center justify-center ${
+                                   page === activePage
+                                     ? 'bg-medical-blue text-white shadow-md shadow-blue-500/20'
+                                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent dark:hover:border-slate-700'
+                                 }`}
+                               >
+                                 {page}
+                               </button>
+                             ))}
+
+                             <button
+                               type="button"
+                               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                               disabled={activePage === totalPages}
+                               className="p-2 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                               title="Next Page"
+                             >
+                               <ChevronRight size={16} className="text-gray-600 dark:text-gray-300" />
+                             </button>
+                           </div>
+                         </div>
+                       )}
+
                        <div className="space-y-4 pl-4 border-l-2 border-medical-blue/20">
                           {patientData.timeline.length === 0 ? (
                             <p className="text-gray-500 italic ml-4">No historical records available for this patient.</p>
                           ) : (
-                            patientData.timeline.map((record: any) => (
+                            paginatedTimeline.map((record: any) => (
                               <div key={record.id} className="relative pl-6 pb-6 last:pb-0">
                                 <div className="absolute left-[-21px] top-1 bg-medical-blue text-white rounded-full p-1 border-4 border-white shadow-sm">
                                   <CheckCircle size={14} />
