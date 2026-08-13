@@ -14,7 +14,7 @@ export default function CitizenDashboard() {
   const [profile, setProfile] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 3;
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(true);
