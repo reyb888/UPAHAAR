@@ -182,9 +182,31 @@ export const initializeDB = async () => {
         method TEXT NOT NULL,
         status TEXT DEFAULT 'PENDING',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        logged_out_at DATETIME,
+        deleted_by_citizen INTEGER DEFAULT 0,
         FOREIGN KEY (citizen_id) REFERENCES users(id),
         FOREIGN KEY (doctor_id) REFERENCES users(id)
     )`);
+
+    // Run migrations to add missing columns to access_logs if table already existed
+    if (process.env.DATABASE_URL) {
+        await runCreate(`ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS logged_out_at TIMESTAMP`);
+        await runCreate(`ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS deleted_by_citizen INTEGER DEFAULT 0`);
+    } else {
+        await new Promise((resolve) => {
+            db.all(`PRAGMA table_info(access_logs)`, (err, rows) => {
+                const columns = rows ? rows.map(r => r.name) : [];
+                const promises = [];
+                if (!columns.includes('logged_out_at')) {
+                    promises.push(new Promise((res) => db.run(`ALTER TABLE access_logs ADD COLUMN logged_out_at DATETIME`, () => res())));
+                }
+                if (!columns.includes('deleted_by_citizen')) {
+                    promises.push(new Promise((res) => db.run(`ALTER TABLE access_logs ADD COLUMN deleted_by_citizen INTEGER DEFAULT 0`, () => res())));
+                }
+                Promise.all(promises).then(() => resolve());
+            });
+        });
+    }
 
     // Revoked Access (Blocklist) Table
     await runCreate(`CREATE TABLE IF NOT EXISTS revoked_access (

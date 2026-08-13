@@ -1,10 +1,11 @@
 import express from 'express';
-import { registerUser, loginUser, generate2FA, verifyAndEnable2FA, forgotPassword, resetPassword } from '../controllers/authController.js';
+import { registerUser, confirmEmail, loginUser, generate2FA, verifyAndEnable2FA, forgotPassword, resetPassword } from '../controllers/authController.js';
 import { auth } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 router.post('/register', registerUser);
+router.post('/confirm', confirmEmail);
 router.post('/login', loginUser);
 
 // Password Reset Routes (public — no auth required)

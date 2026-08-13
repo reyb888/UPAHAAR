@@ -142,12 +142,12 @@ export default function CitizenRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-medical-light to-blue-50 flex items-center justify-center p-6">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-medical-light to-blue-50 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-3xl bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20"
+        className="w-full max-w-3xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-slate-700/50"
       >
         <div className="bg-medical-blue p-8 text-white text-center">
           <h2 className="text-3xl font-bold mb-2">Citizen Registration</h2>
@@ -177,7 +177,7 @@ export default function CitizenRegister() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Phone Number (For OTP)</label>
+              <label className="text-sm font-semibold text-gray-700">Phone Number</label>
               <input 
                 type="tel" required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none transition-all bg-gray-50/50"

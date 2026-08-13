@@ -10,10 +10,12 @@ export default function DoctorRegister() {
   });
   const [loading, setLoading] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSubmitError(null);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -26,10 +28,10 @@ export default function DoctorRegister() {
         }
         setSuccessId(data.upahaar_id);
       } else {
-        alert(data.message || 'Registration failed');
+        setSubmitError(data.message || 'Registration failed');
       }
     } catch (err) {
-      alert("Server error");
+      setSubmitError('Failed to connect to the backend server. Is it running on port 5000?');
     } finally {
       setLoading(false);
     }
@@ -63,6 +65,11 @@ export default function DoctorRegister() {
             <div><label className="block text-sm font-medium text-gray-700">Email address</label><input required className="mt-1 w-full border rounded-lg p-2" type="email" onChange={e => setFormData({...formData, email: e.target.value})}/></div>
             <div><label className="block text-sm font-medium text-gray-700">Phone</label><input required className="mt-1 w-full border rounded-lg p-2" type="tel" onChange={e => setFormData({...formData, phone: e.target.value})}/></div>
             <div><label className="block text-sm font-medium text-gray-700">Password</label><input required className="mt-1 w-full border rounded-lg p-2" type="password" onChange={e => setFormData({...formData, password: e.target.value})}/></div>
+            {submitError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                <p className="text-sm text-red-600 font-medium">{submitError}</p>
+              </div>
+            )}
             <button disabled={loading} type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-medical-dark hover:bg-gray-800">{loading ? 'Processing...' : 'Register'}</button>
             <div className="text-sm text-center"><a href="/auth/doctor/login" className="font-medium text-medical-dark hover:text-gray-900">Already registered? Sign in</a></div>
           </form>

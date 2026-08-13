@@ -9,7 +9,7 @@ export const getProfile = (req, res) => {
     
     db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
             FROM users u 
-            JOIN medical_profiles m ON u.id = m.user_id 
+            LEFT JOIN medical_profiles m ON u.id = m.user_id 
             WHERE u.id = ?`, [userId], (err, profile) => {
         if (err || !profile) {
             return res.status(404).json({ message: 'Profile not found' });
@@ -52,18 +52,29 @@ export const updateProfile = (req, res) => {
     }
 
     db.run(
-        `UPDATE medical_profiles SET 
-            dob = COALESCE(?, dob), gender = COALESCE(?, gender), 
-            blood_group = COALESCE(?, blood_group), height_cm = COALESCE(?, height_cm), 
-            weight_kg = COALESCE(?, weight_kg), chest_size_cm = COALESCE(?, chest_size_cm), 
-            vision_left = COALESCE(?, vision_left), vision_right = COALESCE(?, vision_right), 
-            hearing_status = COALESCE(?, hearing_status), allergies = COALESCE(?, allergies), 
-            family_history = COALESCE(?, family_history), mental_health = COALESCE(?, mental_health), 
-            respiratory_disorders = COALESCE(?, respiratory_disorders), 
-            heart_problems = COALESCE(?, heart_problems), nervous_disorders = COALESCE(?, nervous_disorders), 
-            identifying_features = COALESCE(?, identifying_features),
-            emergency_contacts = COALESCE(?, emergency_contacts)
-         WHERE user_id = ?`,
+        `INSERT INTO medical_profiles (dob, gender, blood_group, height_cm, weight_kg, chest_size_cm,
+            vision_left, vision_right, hearing_status, allergies, family_history, mental_health,
+            respiratory_disorders, heart_problems, nervous_disorders, identifying_features,
+            emergency_contacts, user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id) DO UPDATE SET
+            dob = COALESCE(EXCLUDED.dob, medical_profiles.dob),
+            gender = COALESCE(EXCLUDED.gender, medical_profiles.gender),
+            blood_group = COALESCE(EXCLUDED.blood_group, medical_profiles.blood_group),
+            height_cm = COALESCE(EXCLUDED.height_cm, medical_profiles.height_cm),
+            weight_kg = COALESCE(EXCLUDED.weight_kg, medical_profiles.weight_kg),
+            chest_size_cm = COALESCE(EXCLUDED.chest_size_cm, medical_profiles.chest_size_cm),
+            vision_left = COALESCE(EXCLUDED.vision_left, medical_profiles.vision_left),
+            vision_right = COALESCE(EXCLUDED.vision_right, medical_profiles.vision_right),
+            hearing_status = COALESCE(EXCLUDED.hearing_status, medical_profiles.hearing_status),
+            allergies = COALESCE(EXCLUDED.allergies, medical_profiles.allergies),
+            family_history = COALESCE(EXCLUDED.family_history, medical_profiles.family_history),
+            mental_health = COALESCE(EXCLUDED.mental_health, medical_profiles.mental_health),
+            respiratory_disorders = COALESCE(EXCLUDED.respiratory_disorders, medical_profiles.respiratory_disorders),
+            heart_problems = COALESCE(EXCLUDED.heart_problems, medical_profiles.heart_problems),
+            nervous_disorders = COALESCE(EXCLUDED.nervous_disorders, medical_profiles.nervous_disorders),
+            identifying_features = COALESCE(EXCLUDED.identifying_features, medical_profiles.identifying_features),
+            emergency_contacts = COALESCE(EXCLUDED.emergency_contacts, medical_profiles.emergency_contacts)`,
         fields,
         function (err) {
             if (err) {
@@ -320,10 +331,10 @@ export const getNearbyPharmacies = async (req, res) => {
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;
     db.all(`
-        SELECT a.id, a.method, a.status, a.created_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
+        SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
         FROM access_logs a
         JOIN users u ON a.doctor_id = u.id
-        WHERE a.citizen_id = ?
+        WHERE a.citizen_id = ? AND (a.deleted_by_citizen = 0 OR a.deleted_by_citizen IS NULL)
         ORDER BY a.created_at DESC
     `, [citizenId], (err, logs) => {
         if (err) {
@@ -337,9 +348,18 @@ export const getNotifications = (req, res) => {
 export const acknowledgeNotification = (req, res) => {
     const citizenId = req.user.id;
     const logId = req.params.id;
-    db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err) {
-        if (err) return res.status(500).json({ message: 'Error updating notification' });
-        res.json({ message: 'Notification approved' });
+    db.get(`SELECT doctor_id FROM access_logs WHERE id = ? AND citizen_id = ?`, [logId, citizenId], (err, log) => {
+        if (err || !log) return res.status(404).json({ message: 'Notification not found' });
+
+        // Approving a request re-grants access: clear any previous revocation for this doctor
+        db.run(`DELETE FROM revoked_access WHERE citizen_id = ? AND doctor_id = ?`, [citizenId, log.doctor_id], (delErr) => {
+            if (delErr) return res.status(500).json({ message: 'Error updating notification' });
+
+            db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err2) {
+                if (err2) return res.status(500).json({ message: 'Error updating notification' });
+                res.json({ message: 'Notification approved' });
+            });
+        });
     });
 };
 
@@ -350,14 +370,31 @@ export const revokeNotificationAccess = (req, res) => {
     db.get(`SELECT doctor_id FROM access_logs WHERE id = ? AND citizen_id = ?`, [logId, citizenId], (err, log) => {
         if (err || !log) return res.status(404).json({ message: 'Notification not found' });
         
-        db.run(`INSERT OR IGNORE INTO revoked_access (citizen_id, doctor_id) VALUES (?, ?)`, [citizenId, log.doctor_id], (err2) => {
+        db.run(`INSERT INTO revoked_access (citizen_id, doctor_id) VALUES (?, ?) ON CONFLICT (citizen_id, doctor_id) DO NOTHING`, [citizenId, log.doctor_id], (err2) => {
             if (err2) return res.status(500).json({ message: 'Error revoking access' });
             
-            db.run(`UPDATE access_logs SET status = 'REVOKED' WHERE id = ?`, [logId], (err3) => {
+            db.run(`UPDATE access_logs SET status = 'REVOKED', logged_out_at = COALESCE(logged_out_at, CURRENT_TIMESTAMP) WHERE id = ?`, [logId], (err3) => {
                 if (err3) console.error("Error updating log status", err3);
                 res.json({ message: 'Access revoked successfully' });
             });
         });
+    });
+};
+
+export const deleteNotification = (req, res) => {
+    const citizenId = req.user.id;
+    const logId = req.params.id;
+
+    db.run(`
+        UPDATE access_logs 
+        SET deleted_by_citizen = 1 
+        WHERE id = ? AND citizen_id = ?
+    `, [logId, citizenId], function(err) {
+        if (err) {
+            console.error("[DELETE_NOTIFICATION] Error:", err);
+            return res.status(500).json({ message: 'Error deleting notification' });
+        }
+        res.json({ message: 'Notification deleted successfully' });
     });
 };
 

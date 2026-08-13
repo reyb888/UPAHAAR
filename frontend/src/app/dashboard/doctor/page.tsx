@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera } from 'lucide-react';
+import { Scan, Search, User, Clock, Shield, LogOut, CheckCircle, AlertCircle, Phone, Pill, BrainCircuit, Camera, Zap, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import Script from 'next/script';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
@@ -11,6 +11,12 @@ import VitalChart from '../../components/VitalChart';
 export default function DoctorDashboard() {
   const [upahaarId, setUpahaarId] = useState('');
   const [patientData, setPatientData] = useState<any>(null);
+  
+  // Advanced Access State
+  const [activeLogId, setActiveLogId] = useState<string | null>(null);
+  const [isWaitingFor3sLoading, setIsWaitingFor3sLoading] = useState(false);
+  const [tempPatientData, setTempPatientData] = useState<any>(null);
+  const [isAccessDenied, setIsAccessDenied] = useState(false);
   const [activeMedicines, setActiveMedicines] = useState<any[]>([]);
   
   // AI Search State
@@ -90,7 +96,7 @@ export default function DoctorDashboard() {
       const pollStatus = async () => {
         try {
           const token = localStorage.getItem('upahaar_token');
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/access-status/${requestId}`, {
+          const response = await fetch(`/api/doctors/access-status/${requestId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -99,8 +105,15 @@ export default function DoctorDashboard() {
             if (data.status === 'APPROVED') {
               setIsPendingApproval(false);
               setRequestId(null);
-              setPatientData(data);
               
+              // Store session tracking info
+              setActiveLogId(data.log_id);
+              sessionStorage.setItem('active_log_id', data.log_id || '');
+              
+              // Trigger 3-second loading transition
+              setIsWaitingFor3sLoading(true);
+              setTempPatientData(data);
+
               // Process medicines
               const timelineData = data.timeline || [];
               const allMedicines: any[] = [];
@@ -124,11 +137,25 @@ export default function DoctorDashboard() {
                 }
               });
               setActiveMedicines(allMedicines);
+
+              // Render profile after 3 seconds
+              setTimeout(() => {
+                setPatientData(data);
+                setIsWaitingFor3sLoading(false);
+                setTempPatientData(null);
+              }, 3000);
+
             } else if (data.status === 'REVOKED') {
               setIsPendingApproval(false);
               setRequestId(null);
+              setIsAccessDenied(true);
               setError("Access request was denied/revoked by the patient.");
             }
+          } else if (response.status === 401) {
+            // Token expired - redirect to login
+            localStorage.removeItem('upahaar_token');
+            sessionStorage.clear();
+            window.location.href = '/auth/doctor/login';
           }
         } catch (err) {
           console.error("Polling error:", err);
@@ -228,7 +255,7 @@ export default function DoctorDashboard() {
     
     try {
       const token = localStorage.getItem('upahaar_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan-face`, {
+      const response = await fetch(`/api/doctors/scan-face`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64Image })
@@ -257,10 +284,33 @@ export default function DoctorDashboard() {
     if (upahaarId.trim()) fetchPatientData(upahaarId.trim());
   };
 
-  const handleClearPatient = () => {
+  const closeActiveSession = async () => {
+    const logId = activeLogId || sessionStorage.getItem('active_log_id');
+    if (logId) {
+      const token = localStorage.getItem('upahaar_token');
+      try {
+        await fetch(`/api/doctors/close-access`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ log_id: logId })
+        });
+      } catch (e) {
+        console.error("Failed to close session:", e);
+      }
+      setActiveLogId(null);
+      sessionStorage.removeItem('active_log_id');
+    }
+  };
+
+  const handleClearPatient = async () => {
+    await closeActiveSession();
     setPatientData(null);
     setUpahaarId('');
     setActiveMedicines([]);
+    setIsAccessDenied(false);
     sessionStorage.removeItem('active_patient_id');
   };
 
@@ -270,10 +320,15 @@ export default function DoctorDashboard() {
     setPatientData(null);
     setIsPendingApproval(false);
     setRequestId(null);
+    setIsAccessDenied(false);
+
+    // Close previous session
+    await closeActiveSession();
+
     const token = localStorage.getItem('upahaar_token');
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${id}?source=${source}`, {
+      const response = await fetch(`/api/doctors/scan/${id}?source=${source}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -286,7 +341,14 @@ export default function DoctorDashboard() {
           setPendingPatientId(data.patient.upahaar_id);
         } else {
           setPatientData(data);
-          sessionStorage.setItem('active_patient_id', id);
+          setActiveLogId(data.log_id);
+          // Store session tracking info - only if we have valid data
+          if (data.log_id) {
+            sessionStorage.setItem('active_log_id', data.log_id);
+          }
+          if (id) {
+            sessionStorage.setItem('active_patient_id', id);
+          }
           
           // Combine medicines from all prescriptions
           const timelineData = data.timeline || [];
@@ -312,6 +374,11 @@ export default function DoctorDashboard() {
           });
           setActiveMedicines(allMedicines);
         }
+      } else if (response.status === 401) {
+        // Token expired - redirect to login
+        localStorage.removeItem('upahaar_token');
+        sessionStorage.clear();
+        window.location.href = '/auth/doctor/login';
       } else {
         setError(data.message || "Failed to fetch patient data.");
         sessionStorage.removeItem('active_patient_id');
@@ -327,10 +394,15 @@ export default function DoctorDashboard() {
   // Restore active patient on mount (survives page refresh) + cleanup scanners on unmount
   useEffect(() => {
     const savedPatientId = sessionStorage.getItem('active_patient_id');
+    const savedLogId = sessionStorage.getItem('active_log_id');
+    if (savedLogId) {
+      setActiveLogId(savedLogId);
+    }
     if (savedPatientId) {
       setUpahaarId(savedPatientId);
       fetchPatientData(savedPatientId);
     }
+
     return () => {
       stopScanner();
       stopFaceScanner();
@@ -344,7 +416,7 @@ export default function DoctorDashboard() {
     setAiSearchResult(null);
     try {
       const token = localStorage.getItem('upahaar_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctors/scan/${patientData.patient.upahaar_id}/ai-search`, {
+      const response = await fetch(`/api/doctors/scan/${patientData.patient.upahaar_id}/ai-search`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -373,7 +445,7 @@ export default function DoctorDashboard() {
         <nav className="flex-1 space-y-4">
           <button onClick={handleClearPatient} className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold w-full text-left"><Scan size={20} /> Scan Patient</button>
         </nav>
-        <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = '/auth/doctor/login'; }} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mt-auto font-semibold">
+        <button onClick={async () => { await closeActiveSession(); localStorage.clear(); sessionStorage.clear(); window.location.href = '/auth/doctor/login'; }} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mt-auto font-semibold">
           <LogOut size={18} /> Logout
         </button>
       </aside>
@@ -426,7 +498,7 @@ export default function DoctorDashboard() {
                          placeholder="UPHR-123456" 
                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-medical-blue outline-none"
                          value={upahaarId}
-                         onChange={(e) => setUpahaarId(e.target.value)}
+                         onChange={(e) => setUpahaarId(e.target.value.toUpperCase())}
                        />
                        <button type="submit" disabled={loading} className="bg-gray-800 hover:bg-black text-white px-4 rounded-lg flex justify-center items-center"><Search size={18}/></button>
                      </div>
@@ -463,7 +535,41 @@ export default function DoctorDashboard() {
 
             {/* Right Column: Patient Data */}
             <div className="lg:col-span-2">
-               {isPendingApproval ? (
+               {isWaitingFor3sLoading ? (
+                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 p-10 rounded-2xl shadow-sm border border-emerald-100 flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                   <motion.div 
+                     initial={{ scale: 0.8, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 border border-emerald-200 shadow-md shadow-emerald-100/50"
+                   >
+                     <CheckCircle size={32} />
+                   </motion.div>
+                   <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Access Granted!</h2>
+                   <p className="text-emerald-700 font-semibold text-sm mb-6">Synchronizing clinical history...</p>
+                   
+                   {/* Dual-gradient spinning loading wheel */}
+                   <div className="relative flex items-center justify-center">
+                     <div className="w-16 h-16 rounded-full border-4 border-t-transparent border-b-transparent border-l-emerald-500 border-r-indigo-500 animate-spin"></div>
+                     <div className="absolute text-[10px] font-bold text-gray-400">3s</div>
+                   </div>
+                 </div>
+               ) : isAccessDenied ? (
+                 <div className="bg-gradient-to-br from-red-50 to-rose-50/30 p-10 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                   <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6 border border-red-200 shadow-md shadow-red-100/50">
+                     <AlertCircle size={32} className="text-red-500" />
+                   </div>
+                   <h2 className="text-2xl font-extrabold text-gray-800 mb-2">Access Denied</h2>
+                   <p className="text-gray-500 max-w-sm mb-8 leading-relaxed text-sm">
+                     The patient has declined your access request or the access credentials have expired.
+                   </p>
+                   <button 
+                     onClick={handleClearPatient}
+                     className="px-6 py-2.5 bg-gray-800 hover:bg-black text-white font-bold rounded-xl transition-all shadow-md text-xs cursor-pointer"
+                   >
+                     Return to Workspace
+                   </button>
+                 </div>
+               ) : isPendingApproval ? (
                  <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                    <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-6 animate-pulse border border-amber-200">
                      <Clock size={32} className="text-amber-500" />
@@ -477,10 +583,7 @@ export default function DoctorDashboard() {
                      Polling approval status...
                    </div>
                    <button
-                     onClick={() => {
-                       setIsPendingApproval(false);
-                       setRequestId(null);
-                     }}
+                     onClick={handleClearPatient}
                      className="mt-8 text-sm text-red-500 font-semibold hover:underline"
                    >
                      Cancel Request
@@ -492,13 +595,47 @@ export default function DoctorDashboard() {
                    <p className="text-gray-500 font-semibold">Decrypting medical records...</p>
                  </div>
                ) : error ? (
-                 <div className="bg-red-50 p-10 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center justify-center h-full min-h-[400px]">
-                   <AlertCircle size={48} className="text-red-400 mb-4" />
-                   <h2 className="text-xl font-bold text-gray-800 mb-2">Access Denied</h2>
-                   <p className="text-gray-600 text-center">{error}</p>
-                 </div>
+                  <div className={`p-10 rounded-2xl shadow-sm border flex flex-col items-center justify-center h-full min-h-[400px] text-center ${
+                    error.includes('Consent Revoked') || error.includes('declined') 
+                      ? 'bg-gradient-to-br from-red-50 to-rose-50/30 border-red-100' 
+                      : error.includes('not found') || error.includes('invalid')
+                        ? 'bg-gradient-to-br from-amber-50 to-orange-50/30 border-amber-100'
+                        : 'bg-gradient-to-br from-slate-50 to-gray-50/30 border-gray-200'
+                  }`}>
+                    <AlertCircle size={48} className={`mb-4 ${
+                      error.includes('Consent Revoked') || error.includes('declined') ? 'text-red-400' 
+                      : error.includes('not found') || error.includes('invalid') ? 'text-amber-400'
+                      : 'text-gray-400'
+                    }`} />
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">{
+                      error.includes('Consent Revoked') || error.includes('declined') ? 'Access Denied'
+                      : error.includes('not found') || error.includes('invalid') ? 'Patient Not Found'
+                      : error.includes('connection') || error.includes('fetch') ? 'Connection Error'
+                      : 'Request Failed'
+                    }</h2>
+                    <p className="text-gray-600 text-center max-w-sm text-sm leading-relaxed">{error}</p>
+                    <button 
+                      onClick={handleClearPatient}
+                      className="mt-6 px-6 py-2.5 bg-gray-800 hover:bg-black text-white font-bold rounded-xl transition-all shadow-md text-xs cursor-pointer"
+                    >
+                      Return to Workspace
+                    </button>
+                  </div>
                ) : patientData ? (
                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                    
+                    {/* Access Source Banner */}
+                    {patientData.method === 'QR_SCAN' ? (
+                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-purple-400/40">
+                        <Zap size={18} className="shrink-0" />
+                        <span>Emergency Access Granted via QR Code Scanner</span>
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-md text-white font-extrabold flex items-center gap-3 text-sm border border-emerald-400/40">
+                        <ShieldCheck size={18} className="shrink-0" />
+                        <span>Clinical Access Granted via Patient Authorization</span>
+                      </div>
+                    )}
                     
                     {/* Patient Overview */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
