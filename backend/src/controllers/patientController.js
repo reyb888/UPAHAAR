@@ -240,6 +240,7 @@ export const getNearbyPharmacies = async (req, res) => {
         const params = new URLSearchParams({
             categories: 'healthcare.pharmacy',
             filter: `circle:${lng},${lat},5000`,
+            bias: `proximity:${lng},${lat}`,
             limit: '20',
             apiKey
         });
