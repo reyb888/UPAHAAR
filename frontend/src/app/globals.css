@@ -55,12 +55,13 @@ body {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
     position: absolute;
     top: 0;
     left: 0;
     opacity: 0;
+    z-index: 20 !important;
 }
 .goog-te-gadget .goog-te-combo option {
     color: black !important;
@@ -75,6 +76,13 @@ body {
     height: 100%;
     overflow: hidden;
     border-radius: 0.75rem;
+    z-index: 10;
+}
+.translate-widget-overlay div {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 .translate-widget-overlay .goog-te-gadget {
     width: 100%;

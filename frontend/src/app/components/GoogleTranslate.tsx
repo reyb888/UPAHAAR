@@ -14,12 +14,10 @@ export default function GoogleTranslate() {
       script.async = true;
       document.body.appendChild(script);
 
-      // Define the callback function globally
       (window as any).googleTranslateElementInit = () => {
         new (window as any).google.translate.TranslateElement(
           {
             pageLanguage: 'en',
-            layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
             autoDisplay: false,
           },
           'google_translate_element'
