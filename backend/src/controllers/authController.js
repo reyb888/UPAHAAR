@@ -272,15 +272,15 @@ const maskEmail = (email) => {
 };
 
 export const forgotPassword = (req, res) => {
-    const { upahaar_id } = req.body;
+    const { email } = req.body;
 
-    if (!upahaar_id) {
-        return res.status(400).json({ message: 'UPAHAAR ID is required' });
+    if (!email) {
+        return res.status(400).json({ message: 'Email address is required' });
     }
 
-    db.get(`SELECT id, email, full_name FROM users WHERE upahaar_id = ?`, [upahaar_id], async (err, user) => {
+    db.get(`SELECT id, email, full_name FROM users WHERE email = ?`, [email], async (err, user) => {
         if (err || !user) {
-            return res.status(404).json({ message: 'No account found with this UPAHAAR ID' });
+            return res.status(404).json({ message: 'No account found with this email address' });
         }
 
         // Generate 6-digit OTP
@@ -322,10 +322,10 @@ export const forgotPassword = (req, res) => {
 };
 
 export const resetPassword = (req, res) => {
-    const { upahaar_id, otp_code, new_password } = req.body;
+    const { email, otp_code, new_password } = req.body;
 
-    if (!upahaar_id || !otp_code || !new_password) {
-        return res.status(400).json({ message: 'UPAHAAR ID, OTP code, and new password are required' });
+    if (!email || !otp_code || !new_password) {
+        return res.status(400).json({ message: 'Email address, OTP code, and new password are required' });
     }
 
     if (new_password.length < 6) {
@@ -333,9 +333,9 @@ export const resetPassword = (req, res) => {
     }
 
     // Find the user
-    db.get(`SELECT id FROM users WHERE upahaar_id = ?`, [upahaar_id], (err, user) => {
+    db.get(`SELECT id FROM users WHERE email = ?`, [email], (err, user) => {
         if (err || !user) {
-            return res.status(404).json({ message: 'No account found with this UPAHAAR ID' });
+            return res.status(404).json({ message: 'No account found with this email address' });
         }
 
         // Find the matching OTP
