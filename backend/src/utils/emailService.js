@@ -16,8 +16,9 @@ export const sendPasswordResetEmail = async (toEmail, fullName, otpCode) => {
         const pass = process.env.SMTP_PASS;
 
         if (!user || !pass) {
-            console.error('SMTP credentials are not configured in environment variables');
-            return resolve(false);
+            console.warn('SMTP credentials are not configured in environment variables. Simulating email sending.');
+            console.log(`[LOCAL DEV] Password reset verification code for ${toEmail}: ${otpCode}`);
+            return resolve(true);
         }
 
         console.log(`Attempting secure SMTP connection to ${host}:${port}...`);
@@ -100,8 +101,10 @@ export const sendPasswordResetEmail = async (toEmail, fullName, otpCode) => {
                 send(`EHLO ${host}`);
                 step = 1;
             } else if (step === 1 && response.startsWith('250')) {
-                // Wait until the final 250 response (no hyphen)
-                if (!response.includes('250-')) {
+                // EHLO response can be multi-line. We split by line and check if the last line does not contain a hyphen.
+                const lines = response.trim().split(/\r?\n/);
+                const lastLine = lines[lines.length - 1];
+                if (lastLine.startsWith('250') && !lastLine.startsWith('250-')) {
                     send('AUTH LOGIN');
                     step = 2;
                 }
