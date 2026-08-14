@@ -8,7 +8,7 @@ type Step = 'id' | 'otp' | 'password' | 'success';
 
 export default function CitizenForgotPassword() {
   const [step, setStep] = useState<Step>('id');
-  const [upahaarId, setUpahaarId] = useState('');
+  const [email, setEmail] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -27,7 +27,7 @@ export default function CitizenForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upahaar_id: upahaarId })
+        body: JSON.stringify({ email })
       });
       const data = await response.json();
 
@@ -73,7 +73,7 @@ export default function CitizenForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upahaar_id: upahaarId, otp_code: otpCode, new_password: newPassword })
+        body: JSON.stringify({ email, otp_code: otpCode, new_password: newPassword })
       });
       const data = await response.json();
 
@@ -96,7 +96,7 @@ export default function CitizenForgotPassword() {
   };
 
   const stepIndicators = [
-    { key: 'id', label: 'Verify ID' },
+    { key: 'id', label: 'Verify Email' },
     { key: 'otp', label: 'Enter Code' },
     { key: 'password', label: 'New Password' }
   ];
@@ -170,18 +170,18 @@ export default function CitizenForgotPassword() {
           )}
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Enter UPAHAAR ID */}
+            {/* Step 1: Enter Email */}
             {step === 'id' && (
               <motion.form key="id" variants={stepVariants} initial="initial" animate="animate" exit="exit" onSubmit={handleRequestOTP} className="space-y-5">
-                <p className="text-gray-500 text-sm">Enter your UPAHAAR ID and we&apos;ll send a verification code to your registered email.</p>
+                <p className="text-gray-500 text-sm">Enter your email address and we&apos;ll send a verification code to your registered email.</p>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">UPAHAAR ID</label>
+                  <label className="text-sm font-semibold text-gray-700">Email Address</label>
                   <input
-                    type="text" required
+                    type="email" required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50/50 transition-all"
-                    placeholder="UPHR-1234567890"
-                    value={upahaarId}
-                    onChange={e => setUpahaarId(e.target.value)}
+                    placeholder="your.name@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
                 <motion.button
@@ -227,7 +227,7 @@ export default function CitizenForgotPassword() {
                   Verify Code
                 </motion.button>
                 <button type="button" onClick={() => { setStep('id'); setError(''); }} className="w-full text-sm text-gray-500 hover:text-medical-blue transition-colors">
-                  ← Use a different UPAHAAR ID
+                  ← Use a different email address
                 </button>
               </motion.form>
             )}

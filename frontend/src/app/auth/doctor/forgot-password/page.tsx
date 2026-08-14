@@ -9,7 +9,7 @@ type Step = 'id' | 'otp' | 'password' | 'success';
 
 export default function DoctorForgotPassword() {
   const [step, setStep] = useState<Step>('id');
-  const [upahaarId, setUpahaarId] = useState('');
+  const [email, setEmail] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -46,7 +46,7 @@ export default function DoctorForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upahaar_id: upahaarId })
+        body: JSON.stringify({ email })
       });
       const data = await response.json();
 
@@ -93,7 +93,7 @@ export default function DoctorForgotPassword() {
       const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ upahaar_id: upahaarId, otp_code: otpCode, new_password: newPassword })
+        body: JSON.stringify({ email, otp_code: otpCode, new_password: newPassword })
       });
       const data = await response.json();
 
@@ -116,7 +116,7 @@ export default function DoctorForgotPassword() {
   };
 
   const stepIndicators = [
-    { key: 'id', label: 'Verify ID', icon: Shield },
+    { key: 'id', label: 'Verify Email', icon: Shield },
     { key: 'otp', label: 'Enter Code', icon: Mail },
     { key: 'password', label: 'New Password', icon: KeyRound }
   ];
@@ -183,18 +183,18 @@ export default function DoctorForgotPassword() {
           )}
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Enter UPAHAAR ID */}
+            {/* Step 1: Enter Email */}
             {step === 'id' && (
               <motion.form key="id" variants={stepVariants} initial="initial" animate="animate" exit="exit" onSubmit={handleRequestOTP} className="space-y-5">
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Enter your Doctor UPAHAAR ID and we&apos;ll send a verification code to your registered email.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Enter your registered email address and we&apos;ll send a verification code to your email.</p>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Doctor UPAHAAR ID</label>
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address</label>
                   <input
-                    type="text" required
+                    type="email" required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-medical-blue focus:border-transparent outline-none bg-gray-50/50 dark:bg-slate-800/50 transition-all"
-                    placeholder="UPHR-XXXXXX"
-                    value={upahaarId}
-                    onChange={e => setUpahaarId(e.target.value)}
+                    placeholder="doctor.name@example.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
                 <motion.button
@@ -239,8 +239,8 @@ export default function DoctorForgotPassword() {
                 >
                   Verify Code
                 </motion.button>
-                <button type="button" onClick={() => { setStep('id'); setError(''); }} className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-medical-blue transition-colors">
-                  <ArrowLeft size={14} className="inline" /> Use a different UPAHAAR ID
+                <button type="button" onClick={() => { setStep('id'); setError(''); }} className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-medical-blue transition-colors flex items-center justify-center gap-1">
+                  <ArrowLeft size={14} className="inline" /> Use a different email address
                 </button>
               </motion.form>
             )}

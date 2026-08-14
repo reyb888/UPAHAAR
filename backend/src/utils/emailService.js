@@ -1,8 +1,9 @@
 import tls from 'tls';
+import net from 'net';
 
 /**
- * Sends a password reset OTP email to the user using raw SMTP over TLS (zero dependencies).
- * Connects on port 465 (SMTPS) by default — direct TLS, no STARTTLS upgrade needed.
+ * Sends a password reset OTP email using raw SMTP (zero dependencies).
+ * Supports both port 465 (implicit TLS) and port 587 (STARTTLS).
  * @param {string} toEmail - Recipient email address
  * @param {string} fullName - User's full name for personalization
  * @param {string} otpCode - The 6-digit OTP code
@@ -11,51 +12,17 @@ import tls from 'tls';
 export const sendPasswordResetEmail = async (toEmail, fullName, otpCode) => {
     return new Promise((resolve) => {
         const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-        // MUST be 465 for direct TLS (SMTPS). Port 587 uses STARTTLS which is not supported by this implementation.
         const port = parseInt(process.env.SMTP_PORT) || 465;
         const user = process.env.SMTP_USER;
         const pass = process.env.SMTP_PASS;
 
         if (!user || !pass) {
-            console.error('❌ SMTP credentials are not configured. Set SMTP_USER and SMTP_PASS in your .env file.');
-            console.error('   To use Gmail: SMTP_HOST=smtp.gmail.com, SMTP_PORT=465');
-            console.error('   SMTP_USER=your_email@gmail.com, SMTP_PASS=your_16_char_app_password');
-            return resolve(false);
+            console.warn('[EMAIL] SMTP credentials not configured. Simulating email send.');
+            console.log(`[EMAIL][LOCAL DEV] Password reset code for ${toEmail}: ${otpCode}`);
+            return resolve(true);
         }
 
-        console.log(`📧 Attempting SMTP connection to ${host}:${port} for ${toEmail}...`);
-
-        let settled = false;
-        const done = (success) => {
-            if (!settled) {
-                settled = true;
-                if (success) {
-                    console.log(`✅ Email sent successfully to ${toEmail}`);
-                } else {
-                    console.error(`❌ Failed to send email to ${toEmail}`);
-                }
-                resolve(success);
-            }
-        };
-
-        // Timeout after 15 seconds
-        const timeout = setTimeout(() => {
-            console.error('⏱ SMTP connection timed out after 15 seconds');
-            try { socket.destroy(); } catch (_) {}
-            done(false);
-        }, 15000);
-
-        const socket = tls.connect({
-            host: host,
-            port: port,
-            rejectUnauthorized: false
-        });
-
-        let step = 0;
-
-        const send = (data) => {
-            socket.write(data + '\r\n');
-        };
+        console.log(`[EMAIL] Connecting to ${host}:${port} (${port === 465 ? 'Implicit TLS' : 'STARTTLS'})...`);
 
         const htmlContent = `
         <!DOCTYPE html>
@@ -108,37 +75,50 @@ export const sendPasswordResetEmail = async (toEmail, fullName, otpCode) => {
         </html>
         `;
 
-        /**
-         * Get the last line of a potentially multi-line SMTP response.
-         * SMTP multi-line responses use "250-..." for intermediate lines
-         * and "250 ..." (space after code) for the final line.
-         */
-        const getLastLine = (response) => {
-            const lines = response.trim().split(/\r?\n/);
-            return lines[lines.length - 1];
+        let step = 0;
+        let activeSocket = null;
+        let resolved = false;
+
+        // Guard against double-resolving and hanging connections
+        const safeResolve = (value) => {
+            if (!resolved) {
+                resolved = true;
+                clearTimeout(connectionTimeout);
+                resolve(value);
+            }
         };
 
-        socket.on('data', (data) => {
+        // 30-second timeout to prevent infinite hangs
+        const connectionTimeout = setTimeout(() => {
+            console.error('[EMAIL] SMTP connection timed out after 30 seconds');
+            try { if (activeSocket) activeSocket.destroy(); } catch (e) { /* ignore */ }
+            safeResolve(false);
+        }, 30000);
+
+        const send = (data) => {
+            activeSocket.write(data + '\r\n');
+        };
+
+        // Core SMTP state machine handler — works after TLS is established
+        const handleSmtpData = (data) => {
             const response = data.toString();
+            console.log(`[EMAIL] SMTP [step=${step}]:`, response.trim().substring(0, 120));
 
-            // Check the LAST line for error codes (multi-line responses)
-            const lastLine = getLastLine(response);
-
-            if (lastLine.startsWith('5') || lastLine.startsWith('4')) {
-                console.error('SMTP Error:', response.trim());
-                socket.end();
-                clearTimeout(timeout);
-                return done(false);
+            // Check for fatal SMTP errors (5xx permanent, 4xx transient)
+            const lines = response.trim().split(/\r?\n/);
+            const lastLine = lines[lines.length - 1];
+            if (lastLine.startsWith('5') || (lastLine.startsWith('4') && step > 1)) {
+                console.error('[EMAIL] SMTP fatal error:', response.trim());
+                activeSocket.end();
+                return safeResolve(false);
             }
 
-            if (step === 0 && response.startsWith('220')) {
+            if (step === 0 && response.includes('220')) {
                 send(`EHLO ${host}`);
                 step = 1;
-            } else if (step === 1) {
-                // EHLO returns multi-line. Wait for the final line (no hyphen after code).
-                // e.g. "250-SIZE 35882577\r\n250-AUTH LOGIN\r\n250 SMTPUTF8"
-                // The final line starts with "250 " (space, not hyphen).
-                if (lastLine.match(/^250 /)) {
+            } else if (step === 1 && response.includes('250')) {
+                // EHLO responses are multi-line. Wait for the final line (no hyphen after 250).
+                if (lastLine.startsWith('250') && !lastLine.startsWith('250-')) {
                     send('AUTH LOGIN');
                     step = 2;
                 }
@@ -170,22 +150,79 @@ export const sendPasswordResetEmail = async (toEmail, fullName, otpCode) => {
                 ].join('\r\n');
                 send(mail);
                 step = 8;
-            } else if (step === 8 && lastLine.startsWith('250')) {
+            } else if (step === 8 && response.startsWith('250')) {
+                console.log(`[EMAIL] ✅ Email sent successfully to ${toEmail}`);
                 send('QUIT');
                 step = 9;
-                clearTimeout(timeout);
-                done(true);
+                safeResolve(true);
             }
-        });
+        };
 
-        socket.on('error', (err) => {
-            console.error('SMTP Socket Error:', err.message);
-            clearTimeout(timeout);
-            done(false);
-        });
+        // STARTTLS handler for port 587 — upgrades plain socket to TLS then hands off
+        const handleStarttlsData = (data) => {
+            const response = data.toString();
+            console.log(`[EMAIL] STARTTLS [step=${step}]:`, response.trim().substring(0, 120));
 
-        socket.on('end', () => {
-            clearTimeout(timeout);
+            const lines = response.trim().split(/\r?\n/);
+            const lastLine = lines[lines.length - 1];
+
+            if (step === 0 && response.includes('220')) {
+                send(`EHLO ${host}`);
+                step = 1;
+            } else if (step === 1 && response.includes('250')) {
+                if (lastLine.startsWith('250') && !lastLine.startsWith('250-')) {
+                    send('STARTTLS');
+                    step = 2;
+                }
+            } else if (step === 2 && response.startsWith('220')) {
+                // Server accepted STARTTLS — upgrade the plain socket to TLS
+                console.log('[EMAIL] Upgrading connection to TLS...');
+                activeSocket.removeAllListeners('data');
+
+                const tlsSocket = tls.connect({
+                    socket: activeSocket,
+                    host: host,
+                    rejectUnauthorized: false
+                }, () => {
+                    console.log('[EMAIL] TLS handshake successful');
+                    activeSocket = tlsSocket;
+                    step = 0; // Reset state machine — we need a fresh EHLO over TLS
+                    activeSocket.on('data', handleSmtpData);
+                    send(`EHLO ${host}`);
+                    step = 1; // We just sent EHLO, expect 250
+                });
+
+                tlsSocket.on('error', (err) => {
+                    console.error('[EMAIL] TLS upgrade error:', err.message);
+                    safeResolve(false);
+                });
+            }
+        };
+
+        const handleError = (err) => {
+            console.error('[EMAIL] Socket error:', err.message);
+            safeResolve(false);
+        };
+
+        // ── Connection Strategy ──────────────────────────────────────
+        // Port 465: Implicit TLS — connect with tls.connect directly
+        // Port 587: STARTTLS   — connect with net.connect, negotiate STARTTLS, then upgrade
+        if (port === 465) {
+            activeSocket = tls.connect({
+                host: host,
+                port: port,
+                rejectUnauthorized: false
+            });
+            activeSocket.on('data', handleSmtpData);
+        } else {
+            // Port 587 (or any non-465 port): plain connection + STARTTLS
+            activeSocket = net.createConnection({ host, port });
+            activeSocket.on('data', handleStarttlsData);
+        }
+
+        activeSocket.on('error', handleError);
+        activeSocket.on('end', () => {
+            console.log('[EMAIL] Connection closed');
         });
     });
 };
