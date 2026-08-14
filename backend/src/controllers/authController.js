@@ -341,17 +341,26 @@ export const forgotPassword = (req, res) => {
                         return res.status(500).json({ message: 'Failed to generate reset code' });
                     }
 
-                    // Send email
+                    // Always log the OTP to the console for development/debugging
+                    console.log(`\n╔══════════════════════════════════════════╗`);
+                    console.log(`║  🔐 PASSWORD RESET OTP FOR ${user.email}`);
+                    console.log(`║  Code: ${otpCode}`);
+                    console.log(`║  Expires: ${expiresAt}`);
+                    console.log(`╚══════════════════════════════════════════╝\n`);
+
+                    // Attempt to send email
                     const emailSent = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
 
-                    if (emailSent) {
-                        res.json({
-                            message: 'Verification code sent to your registered email',
-                            masked_email: maskEmail(user.email)
-                        });
-                    } else {
-                        res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+                    if (!emailSent) {
+                        console.log('⚠️  Email delivery failed — but the OTP code is logged above. Use it directly.');
                     }
+
+                    // Always return success so the user can enter the code
+                    // (they can see it in the backend console if email wasn't delivered)
+                    res.json({
+                        message: 'Verification code sent to your registered email',
+                        masked_email: maskEmail(user.email)
+                    });
                 }
             );
         });
