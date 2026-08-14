@@ -183,6 +183,8 @@ export default function DoctorForgotPassword() {
           )}
 
           <AnimatePresence mode="wait">
+            {/* Step 1: Enter Email */}
+            {step === 'id' && (
               <motion.form key="id" variants={stepVariants} initial="initial" animate="animate" exit="exit" onSubmit={handleRequestOTP} className="space-y-5">
                 <p className="text-gray-500 dark:text-gray-400 text-sm">Enter your registered email address and we&apos;ll send a verification code to your email.</p>
                 <div className="space-y-2">
