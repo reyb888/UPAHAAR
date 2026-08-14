@@ -304,9 +304,7 @@ export default function CitizenDashboard() {
                 <p className="text-gray-500">Manage your medical records securely.</p>
               </div>
             </div>
-            <div className="bg-medical-dark p-2 rounded-xl shadow-lg border border-gray-100">
-               <GoogleTranslate />
-            </div>
+            <GoogleTranslate />
           </header>
 
           {loading ? (

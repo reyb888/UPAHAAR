@@ -39,13 +39,44 @@ body {
     font-size: 0px !important;
 }
 .goog-te-gadget .goog-te-combo {
-    color: black !important;
-    font-size: 14px !important;
-    padding: 4px;
-    border-radius: 6px;
+    color: transparent !important;
+    font-size: 16px !important;
+    padding: 0;
+    border-radius: 0;
     border: none;
     outline: none;
     cursor: pointer;
+    background: transparent !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+}
+.goog-te-gadget .goog-te-combo option {
+    color: black !important;
+    background: white !important;
+}
+/* Overlay container for the Google Translate widget */
+.translate-widget-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0.75rem;
+}
+.translate-widget-overlay .goog-te-gadget {
+    width: 100%;
+    height: 100%;
+}
+.translate-widget-overlay span {
+    display: none !important;
 }
 
 /* Dark mode base styles */

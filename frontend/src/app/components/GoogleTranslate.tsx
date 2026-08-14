@@ -29,9 +29,9 @@ export default function GoogleTranslate() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 bg-white/10 p-2 rounded-xl border border-white/20 hover:bg-white/20 transition-colors">
-      <Languages size={20} className="text-white" />
-      <div id="google_translate_element" className="translate-widget-container overflow-hidden rounded-lg"></div>
+    <div className="translate-btn relative flex items-center justify-center w-10 h-10 bg-blue-700 rounded-xl cursor-pointer hover:bg-blue-600 transition-colors">
+      <Languages size={20} className="text-white pointer-events-none" />
+      <div id="google_translate_element" className="translate-widget-overlay"></div>
     </div>
   );
 }
