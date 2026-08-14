@@ -577,6 +577,114 @@ section { scroll-margin-top: 84px; }
   .chip { animation: none !important; }
   .scene .glow-ring { animation: none !important; }
 }
+
+/* Google Translate Customization */
+.goog-te-banner-frame {
+    display: none !important;
+}
+.goog-tooltip {
+    display: none !important;
+}
+.goog-tooltip:hover {
+    display: none !important;
+}
+.goog-text-highlight {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+font {
+    pointer-events: none !important;
+    background-color: transparent !important;
+}
+#goog-gt-tt, .VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q {
+    display: none !important;
+}
+body {
+    top: 0px !important;
+}
+.goog-te-gadget {
+    color: transparent !important;
+    font-size: 0px !important;
+}
+.goog-te-gadget img,
+.goog-te-gadget-icon,
+.goog-logo-link {
+    display: none !important;
+}
+.goog-te-gadget .goog-te-combo {
+    color: transparent !important;
+    font-size: 16px !important;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: transparent !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    z-index: 20 !important;
+}
+.goog-te-gadget .goog-te-combo option {
+    color: black !important;
+    background: white !important;
+}
+
+/* Button & Overlay container */
+.translate-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #2563eb; /* Use primary blue variable or tailwind blue-600 */
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+.translate-btn:hover {
+    background-color: #1d4ed8;
+}
+.translate-btn:active {
+    transform: translateY(1px);
+}
+.translate-btn svg {
+    width: 20px;
+    height: 20px;
+    color: #fff;
+    pointer-events: none;
+}
+.translate-widget-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 9999px;
+    z-index: 10;
+}
+.translate-widget-overlay div {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.translate-widget-overlay .goog-te-gadget {
+    width: 100%;
+    height: 100%;
+}
+.translate-widget-overlay span {
+    display: none !important;
+}
 </style>
 </head>
 <body>
@@ -613,6 +721,10 @@ section { scroll-margin-top: 84px; }
           <a class="dropdown-item" href="/auth/citizen/register">As Citizen</a>
           <a class="dropdown-item" href="/auth/doctor/register">As Doctor</a>
         </div>
+      </div>
+      <div class="translate-btn" title="Translate Page">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+        <div id="google_translate_element" class="translate-widget-overlay"></div>
       </div>
     </div>
   </div>
@@ -1312,5 +1424,14 @@ section { scroll-margin-top: 84px; }
   });
 })();
 </script>
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+      pageLanguage: 'en',
+      autoDisplay: false
+    }, 'google_translate_element');
+  }
+</script>
+<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>

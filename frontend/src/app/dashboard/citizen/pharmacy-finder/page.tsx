@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Clock, Search, Navigation, AlertCircle, Star } from 'lucide-react';
+import { MapPin, Phone, Clock, Navigation, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import CitizenSidebar from '../../../components/CitizenSidebar';
 
@@ -10,11 +10,9 @@ interface Pharmacy {
   place_id: string;
   name: string;
   vicinity: string;
-  rating?: number;
-  user_ratings_total?: number;
-  opening_hours?: {
-    open_now: boolean;
-  };
+  phone?: string | null;
+  opening_hours?: string | null;
+  distance?: number | null;
 }
 
 export default function PharmacyFinder() {
@@ -117,28 +115,33 @@ export default function PharmacyFinder() {
                         <MapPin size={16} className="shrink-0 mt-0.5" />
                         {pharmacy.vicinity}
                       </p>
+                      {pharmacy.distance != null && (
+                        <p className="text-xs font-bold text-medical-blue bg-blue-50 px-2 py-1 rounded-md mb-3 w-fit">
+                          {pharmacy.distance < 1000 ? `${pharmacy.distance} m away` : `${(pharmacy.distance / 1000).toFixed(1)} km away`}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                       {pharmacy.rating ? (
-                         <div className="flex items-center gap-1 text-sm font-bold text-gray-700">
-                           <Star size={16} className="text-yellow-400 fill-yellow-400" />
-                           {pharmacy.rating} <span className="text-gray-400 font-normal">({pharmacy.user_ratings_total})</span>
-                         </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
+                       {pharmacy.phone ? (
+                         <a
+                           href={`tel:${pharmacy.phone}`}
+                           className="flex items-center gap-1.5 text-sm font-bold text-medical-blue hover:underline"
+                         >
+                           <Phone size={14} /> {pharmacy.phone}
+                         </a>
                        ) : (
-                         <span className="text-sm text-gray-400">No ratings</span>
+                         <span className="text-sm text-gray-400">No phone</span>
                        )}
 
                        {pharmacy.opening_hours ? (
-                          pharmacy.opening_hours.open_now ? (
-                            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                              <Clock size={12} /> Open Now
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">
-                              <Clock size={12} /> Closed
-                            </span>
-                          )
+                         <span
+                           className="text-xs font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-md text-right"
+                           title={pharmacy.opening_hours}
+                         >
+                           <Clock size={12} className="inline mr-1" />
+                           {pharmacy.opening_hours}
+                         </span>
                        ) : (
                          <span className="text-xs text-gray-400">Hours unknown</span>
                        )}

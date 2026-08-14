@@ -47,6 +47,13 @@ export const registerUser = async (req, res) => {
                 return res.status(400).json({ message: error.message });
             }
 
+            // GoTrue returns 200 with an EMPTY identities array when the email is already registered.
+            // No user is created in this case - treat it as a conflict, not a success.
+            if (data.user && data.user.identities && data.user.identities.length === 0) {
+                console.warn(`[Register] Email already registered (no identity created): ${email}`);
+                return res.status(409).json({ message: 'An account with this email already exists. Please log in instead.' });
+            }
+
             console.log(`[Register] Supabase Auth sign-up successful for email: ${email}, user ID: ${data.user?.id}`);
 
             // Supabase Auth created the user. The DB trigger will sync to public.users.
@@ -94,6 +101,36 @@ export const registerUser = async (req, res) => {
         );
     } catch (error) {
         console.error("Register error:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const confirmEmail = async (req, res) => {
+    const { token_hash, type } = req.body;
+
+    if (!token_hash || !type) {
+        return res.status(400).json({ message: 'Missing token_hash or type' });
+    }
+
+    if (!supabase) {
+        return res.status(400).json({ message: 'Supabase Auth is not configured' });
+    }
+
+    try {
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
+
+        if (error) {
+            console.error("[Confirm] verifyOtp Error:", error);
+            return res.status(400).json({ message: error.message });
+        }
+
+        console.log(`[Confirm] Email verified successfully for: ${data.user?.email}`);
+        return res.status(200).json({
+            message: 'Email verified successfully. You can now log in.',
+            email: data.user?.email
+        });
+    } catch (error) {
+        console.error("[Confirm] verifyOtp unexpected error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };

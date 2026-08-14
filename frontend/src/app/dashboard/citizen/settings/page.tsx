@@ -317,65 +317,86 @@ export default function CitizenSettings() {
 
                       {/* Expandable Doctor Access Logs list */}
                       {opt.id === 'access' && showDoctorsList && (
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                        <div className="mt-4 pt-4 border-t border-gray-100">
                           {notifications.length === 0 ? (
                             <div className="text-center p-6 text-gray-500 bg-gray-50 rounded-2xl border border-gray-100">
                               No doctor access logs found.
                             </div>
                           ) : (
-                             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                              {notifications.map((log) => (
-                                <div key={log.id} className="bg-gray-50 dark:bg-slate-900 p-4 rounded-2xl border border-gray-200/60 shadow-sm flex flex-col gap-3">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <h4 className="font-bold text-gray-800 dark:text-white text-sm">
-                                        Dr. {log.doctor_name}
-                                      </h4>
-                                      <p className="text-xs text-gray-500 mt-0.5">
-                                        UPAHAAR ID: <span className="font-mono font-semibold text-gray-750 dark:text-gray-300">{log.doctor_upahaar_id || 'N/A'}</span>
-                                      </p>
-                                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                        <Eye size={12} /> Accessed via {log.method}
-                                      </p>
-                                    </div>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                      log.status === 'REVOKED' 
-                                        ? 'bg-red-100 text-red-700' 
-                                        : log.status === 'ACKNOWLEDGED'
-                                          ? 'bg-green-100 text-green-700'
-                                          : 'bg-yellow-100 text-yellow-700'
-                                    }`}>
-                                      {log.status}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-250/20 pt-2">
-                                    <span className="flex items-center gap-1"><Clock size={11} /> {new Date(log.created_at).toLocaleString()}</span>
-                                    
-                                    {log.status !== 'REVOKED' ? (
-                                      <div className="flex gap-1.5 shrink-0">
-                                        {log.status === 'PENDING' && (
-                                          <button 
-                                            onClick={() => handleNotificationAction(log.id, 'acknowledge')}
-                                            className="px-2.5 py-1 bg-green-100 text-green-700 hover:bg-green-200 font-bold rounded-lg transition-colors flex items-center gap-1 text-[11px]"
-                                          >
-                                            <CheckCircle2 size={12}/> Acknowledge
-                                          </button>
-                                        )}
-                                        <button 
-                                          onClick={() => handleNotificationAction(log.id, 'revoke')}
-                                          className="px-2.5 py-1 bg-red-600 text-white hover:bg-red-700 font-bold rounded-lg transition-colors flex items-center gap-1 text-[11px]"
-                                          title="Terminate profile access rights for this doctor"
-                                        >
-                                          <Ban size={12}/> Terminate Access
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <span className="text-red-500 font-semibold italic text-[11px]">Access Terminated</span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                            <div className="w-full overflow-x-auto rounded-2xl border border-gray-150 shadow-sm bg-white dark:bg-slate-900">
+                              <table className="w-full min-w-[500px] border-collapse text-left">
+                                <thead>
+                                  <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150">
+                                    <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Doctor ID</th>
+                                    <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Doctor Name</th>
+                                    <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Accessed</th>
+                                    <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Session Ended</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                                  {notifications.map((log) => {
+                                    // Calculate session end status
+                                    const getEndSessionStatus = () => {
+                                      if (log.status === 'REVOKED') {
+                                        return {
+                                          text: log.logged_out_at 
+                                            ? new Date(log.logged_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            : 'Revoked',
+                                          style: 'text-red-500 dark:text-red-400 font-semibold text-xs'
+                                        };
+                                      }
+                                      if (log.status === 'PENDING') {
+                                        return {
+                                          text: 'Awaiting Consent',
+                                          style: 'text-amber-500 dark:text-amber-400 font-semibold italic text-xs'
+                                        };
+                                      }
+                                      if (log.logged_out_at) {
+                                        return {
+                                          text: new Date(log.logged_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                          style: 'text-gray-500 dark:text-gray-400 font-medium text-xs'
+                                        };
+                                      }
+
+                                      // Check auto-expire after 30 mins
+                                      const createdTime = new Date(log.created_at).getTime();
+                                      const isExpired = Date.now() - createdTime >= 30 * 60 * 1000;
+                                      if (isExpired) {
+                                        const expiredTime = new Date(createdTime + 30 * 60 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                        return {
+                                          text: `${expiredTime} (Auto-ended)`,
+                                          style: 'text-gray-500 dark:text-gray-400 font-medium text-xs'
+                                        };
+                                      }
+
+                                      return {
+                                        text: 'Active Session',
+                                        style: 'text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded-full border border-green-200 dark:border-green-800/30 text-[10px] animate-pulse inline-block'
+                                      };
+                                    };
+
+                                    const endStatus = getEndSessionStatus();
+
+                                    return (
+                                      <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td className="p-3 text-xs font-mono font-bold text-gray-700 dark:text-gray-300">
+                                          {log.doctor_upahaar_id || 'N/A'}
+                                        </td>
+                                        <td className="p-3 text-xs font-bold text-gray-800 dark:text-white">
+                                          Dr. {log.doctor_name}
+                                        </td>
+                                        <td className="p-3 text-[11px] text-gray-500 dark:text-gray-455">
+                                          <div>{new Date(log.created_at).toLocaleDateString()}</div>
+                                          <div className="font-semibold text-gray-400 text-[10px]">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        </td>
+                                        <td className="p-3">
+                                          <span className={endStatus.style}>{endStatus.text}</span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
                             </div>
                           )}
                         </div>

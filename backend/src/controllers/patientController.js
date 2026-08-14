@@ -9,7 +9,7 @@ export const getProfile = (req, res) => {
     
     db.get(`SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
             FROM users u 
-            JOIN medical_profiles m ON u.id = m.user_id 
+            LEFT JOIN medical_profiles m ON u.id = m.user_id 
             WHERE u.id = ?`, [userId], (err, profile) => {
         if (err || !profile) {
             return res.status(404).json({ message: 'Profile not found' });
@@ -52,18 +52,29 @@ export const updateProfile = (req, res) => {
     }
 
     db.run(
-        `UPDATE medical_profiles SET 
-            dob = COALESCE(?, dob), gender = COALESCE(?, gender), 
-            blood_group = COALESCE(?, blood_group), height_cm = COALESCE(?, height_cm), 
-            weight_kg = COALESCE(?, weight_kg), chest_size_cm = COALESCE(?, chest_size_cm), 
-            vision_left = COALESCE(?, vision_left), vision_right = COALESCE(?, vision_right), 
-            hearing_status = COALESCE(?, hearing_status), allergies = COALESCE(?, allergies), 
-            family_history = COALESCE(?, family_history), mental_health = COALESCE(?, mental_health), 
-            respiratory_disorders = COALESCE(?, respiratory_disorders), 
-            heart_problems = COALESCE(?, heart_problems), nervous_disorders = COALESCE(?, nervous_disorders), 
-            identifying_features = COALESCE(?, identifying_features),
-            emergency_contacts = COALESCE(?, emergency_contacts)
-         WHERE user_id = ?`,
+        `INSERT INTO medical_profiles (dob, gender, blood_group, height_cm, weight_kg, chest_size_cm,
+            vision_left, vision_right, hearing_status, allergies, family_history, mental_health,
+            respiratory_disorders, heart_problems, nervous_disorders, identifying_features,
+            emergency_contacts, user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (user_id) DO UPDATE SET
+            dob = COALESCE(EXCLUDED.dob, medical_profiles.dob),
+            gender = COALESCE(EXCLUDED.gender, medical_profiles.gender),
+            blood_group = COALESCE(EXCLUDED.blood_group, medical_profiles.blood_group),
+            height_cm = COALESCE(EXCLUDED.height_cm, medical_profiles.height_cm),
+            weight_kg = COALESCE(EXCLUDED.weight_kg, medical_profiles.weight_kg),
+            chest_size_cm = COALESCE(EXCLUDED.chest_size_cm, medical_profiles.chest_size_cm),
+            vision_left = COALESCE(EXCLUDED.vision_left, medical_profiles.vision_left),
+            vision_right = COALESCE(EXCLUDED.vision_right, medical_profiles.vision_right),
+            hearing_status = COALESCE(EXCLUDED.hearing_status, medical_profiles.hearing_status),
+            allergies = COALESCE(EXCLUDED.allergies, medical_profiles.allergies),
+            family_history = COALESCE(EXCLUDED.family_history, medical_profiles.family_history),
+            mental_health = COALESCE(EXCLUDED.mental_health, medical_profiles.mental_health),
+            respiratory_disorders = COALESCE(EXCLUDED.respiratory_disorders, medical_profiles.respiratory_disorders),
+            heart_problems = COALESCE(EXCLUDED.heart_problems, medical_profiles.heart_problems),
+            nervous_disorders = COALESCE(EXCLUDED.nervous_disorders, medical_profiles.nervous_disorders),
+            identifying_features = COALESCE(EXCLUDED.identifying_features, medical_profiles.identifying_features),
+            emergency_contacts = COALESCE(EXCLUDED.emergency_contacts, medical_profiles.emergency_contacts)`,
         fields,
         function (err) {
             if (err) {
@@ -220,96 +231,38 @@ export const getNearbyPharmacies = async (req, res) => {
         return res.status(400).json({ message: 'Latitude and longitude are required' });
     }
 
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GEOAPIFY_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ message: 'Google Maps API key is missing' });
+        return res.status(500).json({ message: 'Geoapify API key is missing' });
     }
 
     try {
-        const url = 'https://places.googleapis.com/v1/places:searchNearby';
-        
-        const requestBody = {
-            includedTypes: ["pharmacy"],
-            maxResultCount: 20,
-            locationRestriction: {
-                circle: {
-                    center: {
-                        latitude: parseFloat(lat),
-                        longitude: parseFloat(lng)
-                    },
-                    radius: 5000.0
-                }
-            }
-        };
+        const params = new URLSearchParams({
+            categories: 'healthcare.pharmacy',
+            filter: `circle:${lng},${lat},5000`,
+            bias: `proximity:${lng},${lat}`,
+            limit: '20',
+            apiKey
+        });
 
-        let response;
-        let data;
-        let fetchSuccessful = false;
-        let mappedPharmacies = [];
+        const response = await fetch(`https://api.geoapify.com/v2/places?${params}`);
+        const data = await response.json();
 
-        try {
-            console.log('Attempting to fetch pharmacies via Places API (New)...');
-            response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Goog-Api-Key': apiKey,
-                    'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.regularOpeningHours.openNow'
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            data = await response.json();
-
-            if (response.ok) {
-                mappedPharmacies = (data.places || []).map(place => ({
-                    place_id: place.id,
-                    name: place.displayName?.text || 'Unknown Pharmacy',
-                    vicinity: place.formattedAddress || '',
-                    rating: place.rating || null,
-                    user_ratings_total: place.userRatingCount || 0,
-                    opening_hours: place.regularOpeningHours ? { open_now: place.regularOpeningHours.openNow } : undefined
-                }));
-                fetchSuccessful = true;
-            } else {
-                console.warn('Places API (New) returned error status:', response.status, data);
-            }
-        } catch (newApiError) {
-            console.warn('Places API (New) fetch threw error:', newApiError.message || newApiError);
+        if (!response.ok) {
+            console.error('Geoapify API error:', response.status, data);
+            return res.status(500).json({ message: 'Failed to fetch pharmacies from Geoapify' });
         }
 
-        // Fallback to Classic Places API if New API failed
-        if (!fetchSuccessful) {
-            console.log('Falling back to Classic Places API (nearbysearch)...');
-            const classicUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=pharmacy&key=${apiKey}`;
-            
-            try {
-                const classicResponse = await fetch(classicUrl);
-                const classicData = await classicResponse.json();
+        const pharmacies = (data.features || []).map(f => ({
+            place_id: f.properties.place_id || '',
+            name: f.properties.name || 'Unknown Pharmacy',
+            vicinity: f.properties.formatted || f.properties.address_line1 || '',
+            phone: f.properties.contact?.phone || null,
+            opening_hours: f.properties.opening_hours || null,
+            distance: f.properties.distance != null ? Math.round(f.properties.distance) : null
+        }));
 
-                if (classicResponse.ok && (classicData.status === 'OK' || classicData.status === 'ZERO_RESULTS')) {
-                    mappedPharmacies = (classicData.results || []).map(place => ({
-                        place_id: place.place_id,
-                        name: place.name || 'Unknown Pharmacy',
-                        vicinity: place.vicinity || '',
-                        rating: place.rating || null,
-                        user_ratings_total: place.user_ratings_total || 0,
-                        opening_hours: place.opening_hours ? { open_now: place.opening_hours.open_now } : undefined
-                    }));
-                    fetchSuccessful = true;
-                } else {
-                    console.error('Classic Places API returned error status or invalid state. Status:', classicData.status, 'Error Message:', classicData.error_message);
-                }
-            } catch (classicApiError) {
-                console.error('Classic Places API fetch threw error:', classicApiError.message || classicApiError);
-            }
-        }
-
-        if (fetchSuccessful) {
-            return res.json({ pharmacies: mappedPharmacies });
-        }
-
-        return res.status(500).json({ message: 'Failed to fetch from Google Maps (both Places API New and Classic failed)' });
+        res.json({ pharmacies });
 
     } catch (error) {
         console.error('Error fetching pharmacies:', error);
@@ -320,10 +273,10 @@ export const getNearbyPharmacies = async (req, res) => {
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;
     db.all(`
-        SELECT a.id, a.method, a.status, a.created_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
+        SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
         FROM access_logs a
         JOIN users u ON a.doctor_id = u.id
-        WHERE a.citizen_id = ?
+        WHERE a.citizen_id = ? AND (a.deleted_by_citizen = 0 OR a.deleted_by_citizen IS NULL)
         ORDER BY a.created_at DESC
     `, [citizenId], (err, logs) => {
         if (err) {
@@ -337,9 +290,18 @@ export const getNotifications = (req, res) => {
 export const acknowledgeNotification = (req, res) => {
     const citizenId = req.user.id;
     const logId = req.params.id;
-    db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err) {
-        if (err) return res.status(500).json({ message: 'Error updating notification' });
-        res.json({ message: 'Notification approved' });
+    db.get(`SELECT doctor_id FROM access_logs WHERE id = ? AND citizen_id = ?`, [logId, citizenId], (err, log) => {
+        if (err || !log) return res.status(404).json({ message: 'Notification not found' });
+
+        // Approving a request re-grants access: clear any previous revocation for this doctor
+        db.run(`DELETE FROM revoked_access WHERE citizen_id = ? AND doctor_id = ?`, [citizenId, log.doctor_id], (delErr) => {
+            if (delErr) return res.status(500).json({ message: 'Error updating notification' });
+
+            db.run(`UPDATE access_logs SET status = 'APPROVED' WHERE id = ? AND citizen_id = ?`, [logId, citizenId], function(err2) {
+                if (err2) return res.status(500).json({ message: 'Error updating notification' });
+                res.json({ message: 'Notification approved' });
+            });
+        });
     });
 };
 
@@ -350,14 +312,31 @@ export const revokeNotificationAccess = (req, res) => {
     db.get(`SELECT doctor_id FROM access_logs WHERE id = ? AND citizen_id = ?`, [logId, citizenId], (err, log) => {
         if (err || !log) return res.status(404).json({ message: 'Notification not found' });
         
-        db.run(`INSERT OR IGNORE INTO revoked_access (citizen_id, doctor_id) VALUES (?, ?)`, [citizenId, log.doctor_id], (err2) => {
+        db.run(`INSERT INTO revoked_access (citizen_id, doctor_id) VALUES (?, ?) ON CONFLICT (citizen_id, doctor_id) DO NOTHING`, [citizenId, log.doctor_id], (err2) => {
             if (err2) return res.status(500).json({ message: 'Error revoking access' });
             
-            db.run(`UPDATE access_logs SET status = 'REVOKED' WHERE id = ?`, [logId], (err3) => {
+            db.run(`UPDATE access_logs SET status = 'REVOKED', logged_out_at = COALESCE(logged_out_at, CURRENT_TIMESTAMP) WHERE id = ?`, [logId], (err3) => {
                 if (err3) console.error("Error updating log status", err3);
                 res.json({ message: 'Access revoked successfully' });
             });
         });
+    });
+};
+
+export const deleteNotification = (req, res) => {
+    const citizenId = req.user.id;
+    const logId = req.params.id;
+
+    db.run(`
+        UPDATE access_logs 
+        SET deleted_by_citizen = 1 
+        WHERE id = ? AND citizen_id = ?
+    `, [logId, citizenId], function(err) {
+        if (err) {
+            console.error("[DELETE_NOTIFICATION] Error:", err);
+            return res.status(500).json({ message: 'Error deleting notification' });
+        }
+        res.json({ message: 'Notification deleted successfully' });
     });
 };
 

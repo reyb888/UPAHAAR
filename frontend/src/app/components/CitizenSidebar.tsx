@@ -147,19 +147,17 @@ export default function CitizenSidebar({ activePage }: CitizenSidebarProps) {
               </div>
             )}
           </div>
+          <Link
+            href="/dashboard/citizen/settings"
+            className={`flex items-center gap-3 p-3 rounded-lg font-semibold transition-colors ${
+              activePage === 'settings'
+                ? 'bg-white/10 text-white'
+                : 'hover:bg-white/5 text-gray-300'
+            }`}
+          >
+            <Settings size={20} /> Settings
+          </Link>
         </nav>
-      </div>
-      <div className="mt-auto pt-6 border-t border-white/10">
-        <Link
-          href="/dashboard/citizen/settings"
-          className={`flex items-center gap-3 p-3 rounded-lg font-semibold transition-colors ${
-            activePage === 'settings'
-              ? 'bg-white/10 text-white'
-              : 'hover:bg-white/5 text-gray-300'
-          }`}
-        >
-          <Settings size={20} /> Settings
-        </Link>
       </div>
     </aside>
   );

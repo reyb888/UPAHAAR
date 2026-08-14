@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Phone, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import QRCode from 'qrcode';
 import CitizenSidebar from '../../../components/CitizenSidebar';
 
 export default function CitizenQRCard() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrError, setQrError] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -31,6 +34,13 @@ export default function CitizenQRCard() {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (!profile?.upahaar_id || qrDataUrl) return;
+    QRCode.toDataURL(profile.upahaar_id, { width: 600, margin: 2, errorCorrectionLevel: 'M' })
+      .then(setQrDataUrl)
+      .catch(() => setQrError(true));
+  }, [profile, qrDataUrl]);
 
   const getAllergiesString = () => {
     if (!profile?.allergies) return 'None reported';
@@ -86,7 +96,7 @@ export default function CitizenQRCard() {
 
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 relative"
+            className="upahaar-card bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 relative"
           >
             {/* Card Header */}
             <div className="bg-gradient-to-r from-medical-blue to-medical-dark p-6 text-white text-center relative overflow-hidden">
@@ -117,17 +127,31 @@ export default function CitizenQRCard() {
             <div className="p-8 flex justify-center bg-white">
               <div className="bg-white p-4 rounded-2xl shadow-[inset_0_-2px_10px_rgba(0,0,0,0.05)] border border-gray-200 inline-block relative hover:scale-105 transition-transform cursor-pointer">
                 <div className="w-48 h-48 bg-gray-50 rounded-lg flex items-center justify-center relative overflow-hidden">
-                  <img 
-                     src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${profile.upahaar_id}`} 
-                     alt="QR Code" 
-                     className="relative z-10 w-[150px] h-[150px]" 
-                  />
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt={`QR Code for ${profile.upahaar_id}`}
+                      className="relative z-10 w-[150px] h-[150px]"
+                    />
+                  ) : (
+                    <div className="relative z-10 flex flex-col items-center gap-2 px-3 text-center">
+                      {qrError ? (
+                        <>
+                          <AlertCircle className="text-red-500" size={28} />
+                          <p className="text-xs text-gray-500 font-medium">Could not generate QR.</p>
+                          <p className="text-[10px] text-gray-400 font-mono break-all">{profile.upahaar_id}</p>
+                        </>
+                      ) : (
+                        <div className="w-10 h-10 border-4 border-medical-blue border-t-transparent rounded-full animate-spin" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Emergency Info */}
-            <div className="bg-red-50 p-6 flex flex-col gap-4 border-t border-red-100">
+            <div className="upahaar-card-emergency bg-red-50 p-6 flex flex-col gap-4 border-t border-red-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-red-700">
                   <AlertCircle size={20} />

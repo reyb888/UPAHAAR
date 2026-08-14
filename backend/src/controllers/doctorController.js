@@ -11,23 +11,29 @@ export const scanPatientQr = (req, res) => {
         return res.status(400).json({ message: 'UPAHAAR ID is required' });
     }
 
+    const targetId = upahaar_id.trim().toUpperCase();
+
     // 1. Check if Doctor is blocked by this citizen
     db.get(`SELECT * FROM revoked_access r 
             JOIN users u ON u.id = r.citizen_id
-            WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [upahaar_id, doctorId], (err, revoked) => {
+            WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [targetId, doctorId], (err, revoked) => {
         if (err) return res.status(500).json({ message: 'Database error' });
-        if (revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
+        if (revoked) {
+            // Revocation is not permanent: a QR scan is fresh consent, and manual/face
+            // lookups fall through to a new PENDING request the patient can re-approve.
+            console.log(`[ACCESS] Doctor ${doctorId} had access revoked by patient ${targetId}. Continuing with ${source || 'manual'} flow (revocation is not permanent).`);
+        }
 
         // 2. Find the citizen's profile
-        db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+        db.get(`SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                 FROM users u 
                 LEFT JOIN medical_profiles m ON u.id = m.user_id 
                 WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'`, 
-        [upahaar_id], (err, patient) => {
+        [targetId], (err, patient) => {
             if (err) return res.status(500).json({ message: 'Database error' });
             if (!patient) return res.status(404).json({ message: 'Patient not found or invalid QR' });
 
-            const citizenId = patient.id || patient.user_id;
+            const citizenId = patient.citizen_user_id;
 
             if (source === 'qr') {
                 // 3. QR Scan: Bypass approval, auto-approved, return full data
@@ -47,6 +53,8 @@ export const scanPatientQr = (req, res) => {
 
                         res.json({
                             status: 'APPROVED',
+                            method: 'QR_SCAN',
+                            log_id: logId,
                             patient,
                             timeline: prescriptions,
                             vitals: vitals || []
@@ -54,29 +62,69 @@ export const scanPatientQr = (req, res) => {
                     });
                 });
             } else {
-                // 4. Manual search or face recognition: requires approval
-                const logId = uuidv4();
-                const method = source === 'face' ? 'FACE_SCAN' : 'MANUAL_LOOKUP';
-                console.log(`[ACCESS_LOG] ${method} pending. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
-                
-                db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
-                    [logId, citizenId, doctorId, method, 'PENDING'], (logErr) => {
-                        if (logErr) {
-                            console.error("[ACCESS_LOG] Failed to log access event:", logErr);
-                            return res.status(500).json({ message: 'Database error logging access request' });
-                        }
-                        
-                        res.json({
-                            status: 'PENDING',
-                            message: 'Access request sent. Awaiting patient approval.',
-                            request_id: logId,
-                            patient: {
-                                full_name: patient.full_name,
-                                upahaar_id: patient.upahaar_id
-                            }
+                // 4. Manual search or face recognition: check active approved session first (expires in 30 minutes)
+                db.get(`
+                    SELECT * FROM access_logs 
+                    WHERE doctor_id = ? AND citizen_id = ? AND logged_out_at IS NULL AND status IN ('APPROVED', 'ACKNOWLEDGED', 'QR_SCAN')
+                    ORDER BY created_at DESC LIMIT 1
+                `, [doctorId, citizenId], (err, activeLog) => {
+                    if (err) return res.status(500).json({ message: 'Database error' });
+
+                    const now = new Date();
+                    const isSessionValid = activeLog && (now - new Date(activeLog.created_at) < 30 * 60 * 1000);
+
+                    if (isSessionValid) {
+                        // Return the active session immediately!
+                        db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+                            if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
+
+                            db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                                if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
+
+                                res.json({
+                                    status: 'APPROVED',
+                                    method: activeLog.method,
+                                    log_id: activeLog.id,
+                                    patient,
+                                    timeline: prescriptions,
+                                    vitals: vitals || []
+                                });
+                            });
                         });
+                    } else {
+                        // If there is an expired activeLog, close it at its expiry time (30 minutes after created_at)
+                        if (activeLog) {
+                            const expiryTime = new Date(new Date(activeLog.created_at).getTime() + 30 * 60 * 1000).toISOString();
+                            db.run(`UPDATE access_logs SET logged_out_at = ? WHERE id = ?`, [expiryTime, activeLog.id], (updErr) => {
+                                if (updErr) console.error("[ACCESS_LOG] Failed to close expired log:", updErr);
+                            });
+                        }
+
+                        // Create a new PENDING request
+                        const logId = uuidv4();
+                        const method = source === 'face' ? 'FACE_SCAN' : 'MANUAL_LOOKUP';
+                        console.log(`[ACCESS_LOG] ${method} pending. Inserting logId=${logId}, citizenId=${citizenId}, doctorId=${doctorId}`);
+                        
+                        db.run(`INSERT INTO access_logs (id, citizen_id, doctor_id, method, status) VALUES (?, ?, ?, ?, ?)`,
+                            [logId, citizenId, doctorId, method, 'PENDING'], (logErr) => {
+                                if (logErr) {
+                                    console.error("[ACCESS_LOG] Failed to log access event:", logErr);
+                                    return res.status(500).json({ message: 'Database error logging access request' });
+                                }
+                                
+                                res.json({
+                                    status: 'PENDING',
+                                    message: 'Access request sent. Awaiting patient approval.',
+                                    request_id: logId,
+                                    patient: {
+                                        full_name: patient.full_name,
+                                        upahaar_id: patient.upahaar_id
+                                    }
+                                });
+                            }
+                        );
                     }
-                );
+                });
             }
         });
     });
@@ -95,11 +143,12 @@ export const searchPatientHistoryAI = async (req, res) => {
     }
 
     const doctorId = req.user.id;
+    const targetId = upahaar_id.trim().toUpperCase();
 
-    db.get(`SELECT * FROM revoked_access r JOIN users u ON u.id = r.citizen_id WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [upahaar_id, doctorId], (err, revoked) => {
+    db.get(`SELECT * FROM revoked_access r JOIN users u ON u.id = r.citizen_id WHERE u.upahaar_id = ? AND r.doctor_id = ?`, [targetId, doctorId], (err, revoked) => {
         if (err || revoked) return res.status(403).json({ message: 'Consent Revoked by Patient. Access Denied.' });
 
-        db.get(`SELECT id, full_name FROM users WHERE upahaar_id = ? AND role = 'CITIZEN'`, [upahaar_id], (err, patient) => {
+        db.get(`SELECT id, full_name FROM users WHERE upahaar_id = ? AND role = 'CITIZEN'`, [targetId], (err, patient) => {
         if (err || !patient) return res.status(404).json({ message: 'Patient not found' });
 
         db.all(`SELECT created_at, ai_extracted_data, medicines, raw_ocr_text FROM prescriptions WHERE citizen_id = ? ORDER BY created_at ASC`, [patient.id], async (err, prescriptions) => {
@@ -241,21 +290,25 @@ export const checkAccessStatus = (req, res) => {
 
         if (log.status === 'APPROVED' || log.status === 'ACKNOWLEDGED') {
             // Fetch and return the full patient data
-            db.get(`SELECT u.id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+            db.get(`SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
                     FROM users u 
                     LEFT JOIN medical_profiles m ON u.id = m.user_id 
                     WHERE u.id = ? AND u.role = 'CITIZEN'`, 
             [log.citizen_id], (err, patient) => {
                 if (err || !patient) return res.status(500).json({ message: 'Error fetching patient profile' });
 
-                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [patient.id], (err, prescriptions) => {
+                const citizenId = patient.citizen_user_id;
+
+                db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
                     if (err) return res.status(500).json({ message: 'Error fetching patient timeline' });
 
-                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [patient.id], (err, vitals) => {
+                    db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
                         if (err) return res.status(500).json({ message: 'Error fetching patient vitals' });
 
                         res.json({
                             status: 'APPROVED',
+                            method: log.method,
+                            log_id: log.id,
                             patient,
                             timeline: prescriptions,
                             vitals: vitals || []
@@ -268,5 +321,26 @@ export const checkAccessStatus = (req, res) => {
         } else {
             res.json({ status: 'PENDING', message: 'Awaiting patient approval.' });
         }
+    });
+};
+
+export const closeAccess = (req, res) => {
+    const doctorId = req.user.id;
+    const { log_id } = req.body;
+
+    if (!log_id) {
+        return res.status(400).json({ message: 'Log ID is required' });
+    }
+
+    db.run(`
+        UPDATE access_logs 
+        SET logged_out_at = CURRENT_TIMESTAMP 
+        WHERE id = ? AND doctor_id = ? AND logged_out_at IS NULL
+    `, [log_id, doctorId], function(err) {
+        if (err) {
+            console.error("[CLOSE_ACCESS] Error closing access:", err);
+            return res.status(500).json({ message: 'Error closing access session' });
+        }
+        res.json({ message: 'Access session closed successfully' });
     });
 };
