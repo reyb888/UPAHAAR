@@ -187,3 +187,107 @@ body {
     background-color: #111b21 !important;
     border-right: 1px solid #222e35;
 }
+
+/* ============================================
+   UPAHAAR CARD — dark mode blue theme override
+   (scoped to the QR card; light mode untouched)
+   ============================================ */
+.dark .upahaar-card {
+    background-color: #111b21 !important;
+    border-color: #222e35 !important;
+}
+
+/* Card header: keep medical-blue gradient instead of silver/gray */
+.dark .upahaar-card [class*="bg-gradient-to-r"][class*="from-medical-blue"] {
+    background-image: linear-gradient(to right, #2563EB, #1E3A8A) !important;
+    border: none !important;
+}
+
+.dark .upahaar-card .bg-gray-50\/50 {
+    background-color: #1c2730 !important;
+    border-color: #222e35 !important;
+}
+
+.dark .upahaar-card .border-b {
+    border-color: #222e35 !important;
+}
+
+/* Emergency section: blue theme in dark mode */
+.dark .upahaar-card-emergency {
+    background-color: #16283b !important;
+    border-color: #2563EB !important;
+}
+
+.dark .upahaar-card-emergency .text-red-700 {
+    color: #93c5fd !important;
+}
+
+.dark .upahaar-card-emergency .text-red-800 {
+    color: #dbeafe !important;
+}
+
+.dark .upahaar-card-emergency .text-red-900 {
+    color: #eff6ff !important;
+}
+
+.dark .upahaar-card-emergency .text-red-700\/80 {
+    color: rgba(147, 197, 253, 0.8) !important;
+}
+
+.dark .upahaar-card-emergency .bg-red-100 {
+    background-color: #1e3a5f !important;
+    border-color: #2563EB !important;
+}
+
+.dark .upahaar-card-emergency .bg-red-100\/50 {
+    background-color: rgba(30, 58, 95, 0.5) !important;
+    border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.dark .upahaar-card-emergency .bg-red-100\/30 {
+    background-color: rgba(30, 58, 95, 0.3) !important;
+    border-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+.dark .upahaar-card-emergency .border-red-100,
+.dark .upahaar-card-emergency .border-red-200 {
+    border-color: #2563EB !important;
+}
+
+.dark .upahaar-card-emergency .border-red-200\/50 {
+    border-color: rgba(37, 99, 235, 0.5) !important;
+}
+
+.dark .upahaar-card-emergency .border-red-100\/50 {
+    border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+/* Call button: blue instead of red */
+.dark .upahaar-card-emergency .bg-red-600 {
+    background-color: #2563EB !important;
+}
+
+.dark .upahaar-card-emergency .hover\:bg-red-700:hover {
+    background-color: #1E3A8A !important;
+}
+
+/* "Profile Incomplete" badge: muted amber-blue, no glaring red */
+.dark .upahaar-card-emergency .bg-orange-100 {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #fbbf24 !important;
+}
+
+.dark .upahaar-card-emergency .text-orange-800 {
+    color: #fbbf24 !important;
+}
+
+/* Inner QR holder: match card surface */
+.dark .upahaar-card .bg-white {
+    background-color: #111b21 !important;
+    border-color: #222e35 !important;
+}
+
+.dark .upahaar-card .bg-gray-50 {
+    background-color: #1c2730 !important;
+}
