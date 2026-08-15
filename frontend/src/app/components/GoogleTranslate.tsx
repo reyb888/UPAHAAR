@@ -5,6 +5,35 @@ import { Languages } from 'lucide-react';
 
 export default function GoogleTranslate() {
   useEffect(() => {
+    // 1. Perform cleanup first to ensure a clean slate and prevent duplication
+    const cleanup = () => {
+      try {
+        const script = document.getElementById('google-translate-script');
+        if (script) {
+          script.remove();
+        }
+        delete (window as any).google;
+        delete (window as any).googleTranslateElementInit;
+
+        const skipElements = document.querySelectorAll('.skiptranslate');
+        skipElements.forEach((el) => el.remove());
+        
+        document.documentElement.classList.remove('translated-ltr', 'translated-rtl');
+        document.body.classList.remove('translated-ltr', 'translated-rtl');
+        
+        // Remove style properties added by google translate
+        document.body.style.removeProperty('top');
+        document.body.style.removeProperty('position');
+        document.documentElement.style.removeProperty('top');
+        document.documentElement.style.removeProperty('position');
+      } catch (error) {
+        console.error('Error during Google Translate cleanup:', error);
+      }
+    };
+
+    cleanup();
+
+    // 2. Define init callback
     const initTranslate = () => {
       if (
         typeof window !== 'undefined' &&
@@ -26,39 +55,18 @@ export default function GoogleTranslate() {
       }
     };
 
-    // If script is already loaded and window.google.translate is available, initialize immediately
-    if (
-      (window as any).google &&
-      (window as any).google.translate &&
-      (window as any).google.translate.TranslateElement
-    ) {
-      initTranslate();
-    } else {
-      // Set callback on window so that when script loads, it triggers this callback
-      (window as any).googleTranslateElementInit = initTranslate;
+    (window as any).googleTranslateElementInit = initTranslate;
 
-      // Add Google Translate Script if it doesn't exist
-      if (!document.getElementById('google-translate-script')) {
-        const script = document.createElement('script');
-        script.id = 'google-translate-script';
-        script.type = 'text/javascript';
-        script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-        script.async = true;
-        document.body.appendChild(script);
-      }
-    }
+    // 3. Inject the script fresh
+    const script = document.createElement('script');
+    script.id = 'google-translate-script';
+    script.type = 'text/javascript';
+    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    script.async = true;
+    document.body.appendChild(script);
 
-    // Clean up Google Translate DOM elements when component unmounts to prevent duplicate / stuck elements
-    return () => {
-      try {
-        const skipElements = document.querySelectorAll('.skiptranslate');
-        skipElements.forEach((el) => el.remove());
-        document.documentElement.classList.remove('translated-ltr', 'translated-rtl');
-        document.body.classList.remove('translated-ltr', 'translated-rtl');
-      } catch (error) {
-        console.error('Error cleaning up Google Translate elements:', error);
-      }
-    };
+    // 4. Return cleanup function
+    return cleanup;
   }, []);
 
   return (
