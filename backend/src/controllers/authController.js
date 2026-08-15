@@ -304,6 +304,7 @@ export const verifyAndEnable2FA = (req, res) => {
 // Helper: mask email for privacy (e.g. "r***e@gmail.com")
 const maskEmail = (email) => {
     const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) return email;
     if (localPart.length <= 2) return `${localPart[0]}***@${domain}`;
     return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`;
 };
@@ -315,7 +316,9 @@ export const forgotPassword = (req, res) => {
         return res.status(400).json({ message: 'Email address is required' });
     }
 
-    db.get(`SELECT id, email, full_name FROM users WHERE email = ?`, [email], async (err, user) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    db.get(`SELECT id, email, full_name FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail], async (err, user) => {
         if (err || !user) {
             return res.status(404).json({ message: 'No account found with this email address' });
         }
@@ -342,24 +345,24 @@ export const forgotPassword = (req, res) => {
                     }
 
                     // Always log the OTP to the console for development/debugging
-                    console.log(`\n╔══════════════════════════════════════════╗`);
-                    console.log(`║  🔐 PASSWORD RESET OTP FOR ${user.email}`);
+                    console.log(`\n╔══════════════════════════════════════════════════════════╗`);
+                    console.log(`║  🔐 PASSWORD RESET OTP GENERATED FOR ${user.email}`);
                     console.log(`║  Code: ${otpCode}`);
                     console.log(`║  Expires: ${expiresAt}`);
-                    console.log(`╚══════════════════════════════════════════╝\n`);
+                    console.log(`╚══════════════════════════════════════════════════════════╝\n`);
 
-                    // Attempt to send email
-                    const emailSent = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
+                    // Dispatch email via Nodemailer
+                    const emailResult = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
 
-                    if (!emailSent) {
-                        console.log('⚠️  Email delivery failed — but the OTP code is logged above. Use it directly.');
-                    }
-
-                    // Always return success so the user can enter the code
-                    // (they can see it in the backend console if email wasn't delivered)
                     res.json({
-                        message: 'Verification code sent to your registered email',
-                        masked_email: maskEmail(user.email)
+                        message: emailResult.success
+                            ? 'Verification code sent to your registered email'
+                            : (emailResult.simulated
+                                ? 'Verification code generated! (SMTP credentials missing in backend/.env)'
+                                : 'Verification code generated! Email delivery failed.'),
+                        masked_email: maskEmail(user.email),
+                        email_delivered: emailResult.success,
+                        dev_otp: (!emailResult.success || process.env.NODE_ENV !== 'production') ? otpCode : undefined
                     });
                 }
             );
@@ -378,8 +381,10 @@ export const resetPassword = (req, res) => {
         return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    // Find the user
-    db.get(`SELECT id FROM users WHERE email = ?`, [email], (err, user) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Find the user case-insensitively
+    db.get(`SELECT id FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail], (err, user) => {
         if (err || !user) {
             return res.status(404).json({ message: 'No account found with this email address' });
         }
@@ -405,13 +410,30 @@ export const resetPassword = (req, res) => {
                     const salt = await bcrypt.genSalt(10);
                     const password_hash = await bcrypt.hash(new_password, salt);
 
-                    db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [password_hash, user.id], (updateErr) => {
+                    db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [password_hash, user.id], async (updateErr) => {
                         if (updateErr) {
                             return res.status(500).json({ message: 'Failed to update password' });
                         }
 
                         // Mark OTP as used
                         db.run(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`, [token.id]);
+
+                        // Sync password update to Supabase Auth if Supabase is initialized
+                        if (supabase) {
+                            try {
+                                const { error: supaErr } = await supabase.auth.admin.updateUserById(
+                                    user.id,
+                                    { password: new_password }
+                                );
+                                if (supaErr) {
+                                    console.warn('[ResetPassword] Supabase Auth password update warning:', supaErr.message);
+                                } else {
+                                    console.log(`[ResetPassword] Updated password in Supabase Auth for user ${user.id}`);
+                                }
+                            } catch (supaEx) {
+                                console.error('[ResetPassword] Exception updating Supabase Auth password:', supaEx.message);
+                            }
+                        }
 
                         res.json({ message: 'Password reset successfully! You can now login with your new password.' });
                     });
@@ -423,4 +445,5 @@ export const resetPassword = (req, res) => {
         );
     });
 };
+
 

@@ -15,6 +15,8 @@ export default function CitizenForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [emailDelivered, setEmailDelivered] = useState<boolean>(true);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -33,6 +35,10 @@ export default function CitizenForgotPassword() {
 
       if (response.ok) {
         setMaskedEmail(data.masked_email);
+        setEmailDelivered(data.email_delivered !== false);
+        if (data.dev_otp) {
+          setDevOtp(data.dev_otp);
+        }
         setStep('otp');
       } else {
         setError(data.message);
@@ -205,9 +211,30 @@ export default function CitizenForgotPassword() {
             {step === 'otp' && (
               <motion.form key="otp" variants={stepVariants} initial="initial" animate="animate" exit="exit" onSubmit={handleVerifyOTP} className="space-y-5">
                 <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-gray-600 text-sm">Verification code sent to</p>
+                  <p className="text-gray-600 text-sm">
+                    {emailDelivered ? 'Verification code sent to email inbox:' : 'Verification code generated for:'}
+                  </p>
                   <p className="text-medical-dark font-bold text-lg">{maskedEmail}</p>
+                  {!emailDelivered && (
+                    <p className="text-amber-600 text-xs mt-1 font-medium bg-amber-50 p-2 rounded-lg border border-amber-200">
+                      ⚠️ Real email delivery skipped or failed (check server terminal for details).
+                    </p>
+                  )}
                 </div>
+
+                {devOtp && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                    <p className="text-xs text-amber-800 font-semibold mb-1">⚡ Dev / Local Testing Code</p>
+                    <button
+                      type="button"
+                      onClick={() => setOtpCode(devOtp)}
+                      className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-mono font-bold transition-all shadow-sm"
+                    >
+                      Click to Auto-fill: {devOtp}
+                    </button>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700">6-Digit Verification Code</label>
                   <input
