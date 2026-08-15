@@ -1,5 +1,5 @@
 import { db } from '../db/sqliteSetup.js';
-import { supabase } from '../utils/supabaseClient.js';
+import { supabase, supabaseAdmin } from '../utils/supabaseClient.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -362,7 +362,7 @@ export const forgotPassword = (req, res) => {
                                 : 'Verification code generated! Email delivery failed.'),
                         masked_email: maskEmail(user.email),
                         email_delivered: emailResult.success,
-                        dev_otp: (!emailResult.success || process.env.NODE_ENV !== 'production') ? otpCode : undefined
+                        dev_otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
                     });
                 }
             );
@@ -418,10 +418,10 @@ export const resetPassword = (req, res) => {
                         // Mark OTP as used
                         db.run(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`, [token.id]);
 
-                        // Sync password update to Supabase Auth if Supabase is initialized
-                        if (supabase) {
+                        // Sync password update to Supabase Auth if the admin client is available
+                        if (supabaseAdmin) {
                             try {
-                                const { error: supaErr } = await supabase.auth.admin.updateUserById(
+                                const { error: supaErr } = await supabaseAdmin.auth.admin.updateUserById(
                                     user.id,
                                     { password: new_password }
                                 );
@@ -433,6 +433,8 @@ export const resetPassword = (req, res) => {
                             } catch (supaEx) {
                                 console.error('[ResetPassword] Exception updating Supabase Auth password:', supaEx.message);
                             }
+                        } else {
+                            console.warn('[ResetPassword] Supabase admin client unavailable (SUPABASE_SERVICE_ROLE_KEY not set). Email login password will NOT be updated.');
                         }
 
                         res.json({ message: 'Password reset successfully! You can now login with your new password.' });
