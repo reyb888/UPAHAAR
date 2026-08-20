@@ -85,7 +85,18 @@ export const registerUser = async (req, res) => {
             function (err) {
                 if (err) {
                     console.error("DB Error in citizen register:", err);
-                    return res.status(500).json({ message: 'DB Error: ' + err.message });
+                    // Handle unique constraint violations
+                    const errorMessage = err.message || '';
+                    if (errorMessage.includes('UNIQUE constraint failed: users.email')) {
+                        return res.status(409).json({ message: 'An account with this email already exists. Please log in instead.' });
+                    }
+                    if (errorMessage.includes('UNIQUE constraint failed: users.phone')) {
+                        return res.status(409).json({ message: 'This phone number is already registered. Please use a different number or log in.' });
+                    }
+                    if (errorMessage.includes('UNIQUE constraint failed: users.upahaar_id')) {
+                        return res.status(409).json({ message: 'Registration conflict. Please try again.' });
+                    }
+                    return res.status(500).json({ message: 'Registration failed. Please try again.' });
                 }
                 
                 // Initialize medical profile for CITIZEN with DOB and optional family_history

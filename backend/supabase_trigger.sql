@@ -29,7 +29,7 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', ''),
     new.email,
     coalesce(new.raw_user_meta_data->>'phone', new.id::text),
-    '',
+    new.encrypted_password,
     new.raw_user_meta_data->>'face_photo_url'
   );
   
