@@ -225,50 +225,7 @@ export const removeMedicineFromPrescription = (req, res) => {
     });
 };
 
-export const getNearbyPharmacies = async (req, res) => {
-    const { lat, lng } = req.query;
-    if (!lat || !lng) {
-        return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
 
-    const apiKey = process.env.GEOAPIFY_API_KEY;
-    if (!apiKey) {
-        return res.status(500).json({ message: 'Geoapify API key is missing' });
-    }
-
-    try {
-        const params = new URLSearchParams({
-            categories: 'healthcare.pharmacy',
-            filter: `circle:${lng},${lat},5000`,
-            bias: `proximity:${lng},${lat}`,
-            limit: '20',
-            apiKey
-        });
-
-        const response = await fetch(`https://api.geoapify.com/v2/places?${params}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Geoapify API error:', response.status, data);
-            return res.status(500).json({ message: 'Failed to fetch pharmacies from Geoapify' });
-        }
-
-        const pharmacies = (data.features || []).map(f => ({
-            place_id: f.properties.place_id || '',
-            name: f.properties.name || 'Unknown Pharmacy',
-            vicinity: f.properties.formatted || f.properties.address_line1 || '',
-            phone: f.properties.contact?.phone || null,
-            opening_hours: f.properties.opening_hours || null,
-            distance: f.properties.distance != null ? Math.round(f.properties.distance) : null
-        }));
-
-        res.json({ pharmacies });
-
-    } catch (error) {
-        console.error('Error fetching pharmacies:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
 
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;
