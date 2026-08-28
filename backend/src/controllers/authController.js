@@ -1,5 +1,5 @@
 import { db } from '../db/sqliteSetup.js';
-import { supabase } from '../utils/supabaseClient.js';
+import { supabase, supabaseAdmin } from '../utils/supabaseClient.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -85,7 +85,18 @@ export const registerUser = async (req, res) => {
             function (err) {
                 if (err) {
                     console.error("DB Error in citizen register:", err);
-                    return res.status(500).json({ message: 'DB Error: ' + err.message });
+                    // Handle unique constraint violations
+                    const errorMessage = err.message || '';
+                    if (errorMessage.includes('UNIQUE constraint failed: users.email')) {
+                        return res.status(409).json({ message: 'An account with this email already exists. Please log in instead.' });
+                    }
+                    if (errorMessage.includes('UNIQUE constraint failed: users.phone')) {
+                        return res.status(409).json({ message: 'This phone number is already registered. Please use a different number or log in.' });
+                    }
+                    if (errorMessage.includes('UNIQUE constraint failed: users.upahaar_id')) {
+                        return res.status(409).json({ message: 'Registration conflict. Please try again.' });
+                    }
+                    return res.status(500).json({ message: 'Registration failed. Please try again.' });
                 }
                 
                 // Initialize medical profile for CITIZEN with DOB and optional family_history
@@ -304,6 +315,7 @@ export const verifyAndEnable2FA = (req, res) => {
 // Helper: mask email for privacy (e.g. "r***e@gmail.com")
 const maskEmail = (email) => {
     const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) return email;
     if (localPart.length <= 2) return `${localPart[0]}***@${domain}`;
     return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`;
 };
@@ -315,7 +327,9 @@ export const forgotPassword = (req, res) => {
         return res.status(400).json({ message: 'Email address is required' });
     }
 
-    db.get(`SELECT id, email, full_name FROM users WHERE email = ?`, [email], async (err, user) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    db.get(`SELECT id, email, full_name FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail], async (err, user) => {
         if (err || !user) {
             return res.status(404).json({ message: 'No account found with this email address' });
         }
@@ -341,17 +355,26 @@ export const forgotPassword = (req, res) => {
                         return res.status(500).json({ message: 'Failed to generate reset code' });
                     }
 
-                    // Send email
-                    const emailSent = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
+                    // Always log the OTP to the console for development/debugging
+                    console.log(`\n╔══════════════════════════════════════════════════════════╗`);
+                    console.log(`║  🔐 PASSWORD RESET OTP GENERATED FOR ${user.email}`);
+                    console.log(`║  Code: ${otpCode}`);
+                    console.log(`║  Expires: ${expiresAt}`);
+                    console.log(`╚══════════════════════════════════════════════════════════╝\n`);
 
-                    if (emailSent) {
-                        res.json({
-                            message: 'Verification code sent to your registered email',
-                            masked_email: maskEmail(user.email)
-                        });
-                    } else {
-                        res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
-                    }
+                    // Dispatch email via Nodemailer
+                    const emailResult = await sendPasswordResetEmail(user.email, user.full_name, otpCode);
+
+                    res.json({
+                        message: emailResult.success
+                            ? 'Verification code sent to your registered email'
+                            : (emailResult.simulated
+                                ? 'Verification code generated! (SMTP credentials missing in backend/.env)'
+                                : 'Verification code generated! Email delivery failed.'),
+                        masked_email: maskEmail(user.email),
+                        email_delivered: emailResult.success,
+                        dev_otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+                    });
                 }
             );
         });
@@ -369,8 +392,10 @@ export const resetPassword = (req, res) => {
         return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    // Find the user
-    db.get(`SELECT id FROM users WHERE email = ?`, [email], (err, user) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Find the user case-insensitively
+    db.get(`SELECT id FROM users WHERE LOWER(email) = LOWER(?)`, [cleanEmail], (err, user) => {
         if (err || !user) {
             return res.status(404).json({ message: 'No account found with this email address' });
         }
@@ -396,13 +421,32 @@ export const resetPassword = (req, res) => {
                     const salt = await bcrypt.genSalt(10);
                     const password_hash = await bcrypt.hash(new_password, salt);
 
-                    db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [password_hash, user.id], (updateErr) => {
+                    db.run(`UPDATE users SET password_hash = ? WHERE id = ?`, [password_hash, user.id], async (updateErr) => {
                         if (updateErr) {
                             return res.status(500).json({ message: 'Failed to update password' });
                         }
 
                         // Mark OTP as used
                         db.run(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`, [token.id]);
+
+                        // Sync password update to Supabase Auth if the admin client is available
+                        if (supabaseAdmin) {
+                            try {
+                                const { error: supaErr } = await supabaseAdmin.auth.admin.updateUserById(
+                                    user.id,
+                                    { password: new_password }
+                                );
+                                if (supaErr) {
+                                    console.warn('[ResetPassword] Supabase Auth password update warning:', supaErr.message);
+                                } else {
+                                    console.log(`[ResetPassword] Updated password in Supabase Auth for user ${user.id}`);
+                                }
+                            } catch (supaEx) {
+                                console.error('[ResetPassword] Exception updating Supabase Auth password:', supaEx.message);
+                            }
+                        } else {
+                            console.warn('[ResetPassword] Supabase admin client unavailable (SUPABASE_SERVICE_ROLE_KEY not set). Email login password will NOT be updated.');
+                        }
 
                         res.json({ message: 'Password reset successfully! You can now login with your new password.' });
                     });
@@ -414,4 +458,5 @@ export const resetPassword = (req, res) => {
         );
     });
 };
+
 

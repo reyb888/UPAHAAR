@@ -106,3 +106,75 @@ error: column "emergency_contacts" of relation "medical_profiles" already exists
     at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
 
+[2026-08-15T11:02:01.204Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN medicines TEXT
+Params: []
+Error: column "medicines" of relation "prescriptions" already exists
+error: column "medicines" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:02:01.213Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT
+Params: []
+Error: column "raw_ocr_text" of relation "prescriptions" already exists
+error: column "raw_ocr_text" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:02:01.527Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT
+Params: []
+Error: column "emergency_contacts" of relation "medical_profiles" already exists
+error: column "emergency_contacts" of relation "medical_profiles" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:30:48.988Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT
+Params: []
+Error: column "raw_ocr_text" of relation "prescriptions" already exists
+error: column "raw_ocr_text" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:30:48.993Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT
+Params: []
+Error: column "emergency_contacts" of relation "medical_profiles" already exists
+error: column "emergency_contacts" of relation "medical_profiles" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:30:48.995Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN medicines TEXT
+Params: []
+Error: column "medicines" of relation "prescriptions" already exists
+error: column "medicines" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:56:25.066Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN medicines TEXT
+Params: []
+Error: column "medicines" of relation "prescriptions" already exists
+error: column "medicines" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:56:25.083Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT
+Params: []
+Error: column "emergency_contacts" of relation "medical_profiles" already exists
+error: column "emergency_contacts" of relation "medical_profiles" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-08-15T11:56:25.113Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT
+Params: []
+Error: column "raw_ocr_text" of relation "prescriptions" already exists
+error: column "raw_ocr_text" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+

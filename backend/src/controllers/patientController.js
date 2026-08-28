@@ -1,6 +1,8 @@
 import { db } from '../db/sqliteSetup.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateGeminiContent } from '../utils/gemini.js';
+import Tesseract from 'tesseract.js';
+import { parsePrescriptionText } from '../utils/ocrParser.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -100,14 +102,45 @@ export const uploadPrescription = async (req, res) => {
     const fileUrl = `data:${mimeType};base64,${base64Image}`;
     
     const id = uuidv4();
-    let aiSummary = "AI Processing skipped (No API Key)";
-    let medicinesJson = null;
-    let rawOcrText = null;
+    let aiSummary = "Processing...";
+    let medicinesJson = "[]";
+    let rawOcrText = "";
 
+    // 1. Run local Tesseract OCR on images for free, offline text recognition
     try {
-        if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
-            if (mimeType.startsWith('image/') || mimeType === 'application/pdf') {
-                const prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
+        if (mimeType.startsWith('image/')) {
+            console.log("Running local Tesseract OCR...");
+            const ocrResult = await Tesseract.recognize(req.file.buffer, 'eng');
+            rawOcrText = ocrResult.data.text || "";
+            console.log("Local OCR completed successfully.");
+        } else if (mimeType === 'application/pdf') {
+            rawOcrText = "PDF format uploaded. Local OCR on PDF files is not supported.";
+        }
+    } catch (ocrError) {
+        console.error("Local Tesseract OCR failed:", ocrError);
+        rawOcrText = "Failed to run local OCR: " + ocrError.message;
+    }
+
+    // 2. Perform local heuristic parsing as default fallback (works offline / keyless)
+    try {
+        const parsed = parsePrescriptionText(rawOcrText);
+        aiSummary = parsed.summary;
+        medicinesJson = JSON.stringify(parsed.medicines);
+    } catch (parseError) {
+        console.error("Local heuristic parsing failed:", parseError);
+        aiSummary = "Local text extraction succeeded, but formatting failed.";
+    }
+
+    // 3. Optional: Use Gemini to improve structuring if API key is configured (text-only prompts)
+    if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
+        try {
+            console.log("Structuring extraction with Gemini...");
+            let prompt = "";
+            let apiInputs = [];
+
+            if (mimeType === 'application/pdf') {
+                // PDF fallback: send entire PDF to Gemini Vision
+                prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
 You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
 1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
 2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
@@ -119,32 +152,42 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                         mimeType
                     }
                 };
-                
-                const result = await generateGeminiContent([prompt, filePart], { model: "gemini-2.5-flash" });
+                apiInputs = [prompt, filePart];
+            } else if (rawOcrText && rawOcrText.trim().length > 0) {
+                // Image: Pass local OCR text instead of image (faster and cheaper text-only prompt)
+                prompt = `You are a medical AI assistant. Extract structured data from this prescription text:
+---
+${rawOcrText}
+---
+You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
+1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
+2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
+3. "raw_text": A cleaned up, verbatim transcription of the text. Preserve line breaks with \\n.`;
+                apiInputs = [prompt];
+            }
+
+            if (apiInputs.length > 0) {
+                const result = await generateGeminiContent(apiInputs, { model: "gemini-2.5-flash" });
                 const response = await result.response;
                 let text = response.text().trim();
                 
-                // Attempt to parse JSON safely (in case it added markdown block)
                 if (text.startsWith('```json')) text = text.replace(/```json/g, '').replace(/```/g, '').trim();
                 
                 try {
                     const parsed = JSON.parse(text);
-                    aiSummary = parsed.summary || "Summary extracted but missing from JSON.";
-                    medicinesJson = JSON.stringify(parsed.medicines || []);
-                    rawOcrText = parsed.raw_text || text;
-                } catch (e) {
-                    // Fallback if AI fails to return JSON
-                    aiSummary = text;
-                    medicinesJson = "[]";
-                    rawOcrText = text;
+                    aiSummary = parsed.summary || aiSummary;
+                    medicinesJson = JSON.stringify(parsed.medicines || JSON.parse(medicinesJson));
+                    if (parsed.raw_text) {
+                        rawOcrText = parsed.raw_text;
+                    }
+                    console.log("Gemini structured extraction completed.");
+                } catch (jsonErr) {
+                    console.error("Failed to parse Gemini JSON:", jsonErr, "Response text was:", text);
                 }
-            } else {
-                aiSummary = "Document uploaded. (File type not supported by Gemini Vision)";
             }
+        } catch (geminiError) {
+            console.error("Gemini structured extraction failed:", geminiError);
         }
-    } catch (error) {
-        console.error("Gemini API Error:", error);
-        aiSummary = "AI Processing failed: " + error.message;
     }
 
     db.run(

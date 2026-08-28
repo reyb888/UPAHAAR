@@ -219,9 +219,9 @@ export default function ProfileSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-800">
           <div className="bg-medical-blue p-8 text-white">
             <h1 className="text-3xl font-extrabold mb-2">Complete Your Medical Profile</h1>
             <p className="text-blue-100">Please provide detailed health information. You will only have to do this once.</p>
@@ -231,55 +231,55 @@ export default function ProfileSetup() {
             
             {/* Section 1: Basic Vitals & Info */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Basic Vitals & Identification</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Basic Vitals & Identification</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Blood Group</label>
-                  <input type="text" required placeholder="e.g. O+, A-" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} />
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Blood Group</label>
+                  <input type="text" required placeholder="e.g. O+, A-" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Height (cm)</label>
-                  <input type="number" placeholder="175" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={height} onChange={e => setHeight(e.target.value)} />
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Height (cm)</label>
+                  <input type="number" placeholder="175" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={height} onChange={e => setHeight(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Weight (kg)</label>
-                  <input type="number" placeholder="70" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={weight} onChange={e => setWeight(e.target.value)} />
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Weight (kg)</label>
+                  <input type="number" placeholder="70" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={weight} onChange={e => setWeight(e.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Birth / Identification Mark</label>
-                  <input type="text" placeholder="e.g. Scar on left cheek, Mole on right arm" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={identifyingMarks} onChange={e => setIdentifyingMarks(e.target.value)} />
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Birth / Identification Mark</label>
+                  <input type="text" placeholder="e.g. Scar on left cheek, Mole on right arm" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={identifyingMarks} onChange={e => setIdentifyingMarks(e.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Update Face Recognition Photo (Emergency Access)</label>
-                  <input type="file" accept="image/*" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50" onChange={e => setFacePhoto(e.target.files?.[0] || null)} />
-                  {facePhoto && <p className="text-xs text-green-600 mt-1 font-medium">Selected: {facePhoto.name}</p>}
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Update Face Recognition Photo (Emergency Access)</label>
+                  <input type="file" accept="image/*" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 focus:ring-2 focus:ring-medical-blue outline-none bg-gray-50 dark:bg-slate-950 text-gray-600 dark:text-gray-300" onChange={e => setFacePhoto(e.target.files?.[0] || null)} />
+                  {facePhoto && <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">Selected: {facePhoto.name}</p>}
                 </div>
               </div>
             </div>
 
             {/* Section 2: Sensory */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Sensory (Vision & Hearing)</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Sensory (Vision & Hearing)</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Hearing Issues</label>
-                  <div className="flex items-center gap-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Hearing Issues</label>
+                  <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
                     <input type="checkbox" id="mildDeaf" checked={hearing.mildDeafness} onChange={e => setHearing({...hearing, mildDeafness: e.target.checked})} />
                     <label htmlFor="mildDeaf">Mild Deafness</label>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
                     <input type="checkbox" id="fullDeaf" checked={hearing.fullDeafness} onChange={e => setHearing({...hearing, fullDeafness: e.target.checked})} />
                     <label htmlFor="fullDeaf">Full Deafness</label>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Vision (Left Eye)</label>
-                    <input type="text" placeholder="-1.5" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={visionLeft} onChange={e => setVisionLeft(e.target.value)} />
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Vision (Left Eye)</label>
+                    <input type="text" placeholder="-1.5" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={visionLeft} onChange={e => setVisionLeft(e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Vision (Right Eye)</label>
-                    <input type="text" placeholder="-1.5" className="w-full px-4 py-2 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={visionRight} onChange={e => setVisionRight(e.target.value)} />
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Vision (Right Eye)</label>
+                    <input type="text" placeholder="-1.5" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={visionRight} onChange={e => setVisionRight(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -287,51 +287,51 @@ export default function ProfileSetup() {
 
             {/* Section 3: Allergies */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Allergies</h2>
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Known Allergies</label>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Allergies</h2>
+              <div className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Known Allergies</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.peanuts} onChange={e => setAllergies({...allergies, peanuts: e.target.checked})} /> Peanuts</label>
-                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.dust} onChange={e => setAllergies({...allergies, dust: e.target.checked})} /> Dust Mites</label>
-                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.pollen} onChange={e => setAllergies({...allergies, pollen: e.target.checked})} /> Pollen</label>
-                  <label className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-gray-200 cursor-pointer text-sm font-medium"><input type="checkbox" checked={allergies.penicillin} onChange={e => setAllergies({...allergies, penicillin: e.target.checked})} /> Penicillin</label>
+                  <label className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-200 dark:border-slate-700 cursor-pointer text-sm font-medium text-gray-800 dark:text-gray-200"><input type="checkbox" checked={allergies.peanuts} onChange={e => setAllergies({...allergies, peanuts: e.target.checked})} /> Peanuts</label>
+                  <label className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-200 dark:border-slate-700 cursor-pointer text-sm font-medium text-gray-800 dark:text-gray-200"><input type="checkbox" checked={allergies.dust} onChange={e => setAllergies({...allergies, dust: e.target.checked})} /> Dust Mites</label>
+                  <label className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-200 dark:border-slate-700 cursor-pointer text-sm font-medium text-gray-800 dark:text-gray-200"><input type="checkbox" checked={allergies.pollen} onChange={e => setAllergies({...allergies, pollen: e.target.checked})} /> Pollen</label>
+                  <label className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-gray-200 dark:border-slate-700 cursor-pointer text-sm font-medium text-gray-800 dark:text-gray-200"><input type="checkbox" checked={allergies.penicillin} onChange={e => setAllergies({...allergies, penicillin: e.target.checked})} /> Penicillin</label>
                 </div>
-                <input type="text" placeholder="Other allergies (e.g. Latex, Shellfish)..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm" value={allergies.other} onChange={e => setAllergies({...allergies, other: e.target.value})} />
+                <input type="text" placeholder="Other allergies (e.g. Latex, Shellfish)..." className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-900 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue text-sm" value={allergies.other} onChange={e => setAllergies({...allergies, other: e.target.value})} />
               </div>
             </div>
 
             {/* Section 4: Family Disease History */}
             <div>
-              <div className="flex items-center justify-between border-b pb-2 mb-4">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Family Disease History</h2>
-                  <p className="text-xs text-gray-500">Add medical conditions for multiple family members to help assess health risk factors.</p>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">Family Disease History</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Add medical conditions for multiple family members to help assess health risk factors.</p>
                 </div>
                 <button
                   type="button"
                   onClick={addFamilyHistory}
-                  className="flex items-center gap-1.5 text-sm bg-blue-50 text-medical-blue hover:bg-blue-100 px-3.5 py-2 rounded-xl font-bold transition-all border border-blue-100 shadow-sm"
+                  className="flex items-center gap-1.5 text-sm bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-3.5 py-2 rounded-xl font-bold transition-all border border-blue-100 dark:border-blue-900/50 shadow-sm"
                 >
                   <Plus size={16} /> Add Family Disease History
                 </button>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200 text-xs uppercase tracking-wider">
+                    <tr className="bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-semibold border-b border-gray-200 dark:border-slate-700 text-xs uppercase tracking-wider">
                       <th className="py-3 px-4 w-1/4">Relation</th>
                       <th className="py-3 px-4 w-1/3">Disease / Medical Condition</th>
                       <th className="py-3 px-4">Notes / Remarks (Optional)</th>
                       <th className="py-3 px-4 w-12 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                     {familyHistory.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-slate-850/40 transition-colors">
                         <td className="p-3">
                           <select
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm font-medium"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue text-sm font-medium"
                             value={item.relation}
                             onChange={e => updateFamilyHistory(index, 'relation', e.target.value)}
                           >
@@ -354,7 +354,7 @@ export default function ProfileSetup() {
                           <input
                             type="text"
                             placeholder="e.g. Diabetes Type 2, Hypertension"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue text-sm"
                             value={item.disease}
                             onChange={e => updateFamilyHistory(index, 'disease', e.target.value)}
                           />
@@ -363,7 +363,7 @@ export default function ProfileSetup() {
                           <input
                             type="text"
                             placeholder="e.g. Diagnosed at age 45"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none bg-white focus:ring-2 focus:ring-medical-blue text-sm"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue text-sm"
                             value={item.notes || ''}
                             onChange={e => updateFamilyHistory(index, 'notes', e.target.value)}
                           />
@@ -373,7 +373,7 @@ export default function ProfileSetup() {
                             <button
                               type="button"
                               onClick={() => removeFamilyHistory(index)}
-                              className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-colors inline-flex items-center justify-center"
+                              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 p-2 rounded-xl transition-colors inline-flex items-center justify-center"
                               title="Remove Entry"
                             >
                               <Trash2 size={18} />
@@ -389,46 +389,46 @@ export default function ProfileSetup() {
 
             {/* Section 4: Systemic Conditions */}
             <div>
-              <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Systemic Conditions</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Systemic Conditions</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Mental Illness */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Mental Illness</label>
-                  <div className="space-y-2 mb-3">
+                <div className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Mental Illness</label>
+                  <div className="space-y-2 mb-3 text-gray-800 dark:text-gray-200">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={mentalIllness.anxiety} onChange={e => setMentalIllness({...mentalIllness, anxiety: e.target.checked})} /> Anxiety</label>
                     <label className="flex items-center gap-2"><input type="checkbox" checked={mentalIllness.depression} onChange={e => setMentalIllness({...mentalIllness, depression: e.target.checked})} /> Depression</label>
                   </div>
-                  <input type="text" placeholder="Other mental illness..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={mentalIllness.other} onChange={e => setMentalIllness({...mentalIllness, other: e.target.value})} />
+                  <input type="text" placeholder="Other mental illness..." className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-900 text-gray-800 dark:text-white" value={mentalIllness.other} onChange={e => setMentalIllness({...mentalIllness, other: e.target.value})} />
                 </div>
 
                 {/* Respiratory */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Respiratory System</label>
-                  <div className="space-y-2 mb-3">
+                <div className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Respiratory System</label>
+                  <div className="space-y-2 mb-3 text-gray-800 dark:text-gray-200">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={respiratory.asthma} onChange={e => setRespiratory({...respiratory, asthma: e.target.checked})} /> Asthma</label>
                     <label className="flex items-center gap-2"><input type="checkbox" checked={respiratory.copd} onChange={e => setRespiratory({...respiratory, copd: e.target.checked})} /> COPD</label>
                   </div>
-                  <input type="text" placeholder="Other respiratory issues..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={respiratory.other} onChange={e => setRespiratory({...respiratory, other: e.target.value})} />
+                  <input type="text" placeholder="Other respiratory issues..." className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-900 text-gray-800 dark:text-white" value={respiratory.other} onChange={e => setRespiratory({...respiratory, other: e.target.value})} />
                 </div>
 
                 {/* Heart */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Heart Problem</label>
-                  <div className="space-y-2 mb-3">
+                <div className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Heart Problem</label>
+                  <div className="space-y-2 mb-3 text-gray-800 dark:text-gray-200">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={heartProblem.hypertension} onChange={e => setHeartProblem({...heartProblem, hypertension: e.target.checked})} /> Hypertension</label>
                     <label className="flex items-center gap-2"><input type="checkbox" checked={heartProblem.arrhythmia} onChange={e => setHeartProblem({...heartProblem, arrhythmia: e.target.checked})} /> Arrhythmia</label>
                   </div>
-                  <input type="text" placeholder="Other heart issues..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={heartProblem.other} onChange={e => setHeartProblem({...heartProblem, other: e.target.value})} />
+                  <input type="text" placeholder="Other heart issues..." className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-900 text-gray-800 dark:text-white" value={heartProblem.other} onChange={e => setHeartProblem({...heartProblem, other: e.target.value})} />
                 </div>
 
                 {/* Nervous System */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Nervous System</label>
-                  <div className="space-y-2 mb-3">
+                <div className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Nervous System</label>
+                  <div className="space-y-2 mb-3 text-gray-800 dark:text-gray-200">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={nervousSystem.epilepsy} onChange={e => setNervousSystem({...nervousSystem, epilepsy: e.target.checked})} /> Epilepsy</label>
                   </div>
-                  <input type="text" placeholder="Other nervous issues..." className="w-full px-4 py-2 rounded-lg border outline-none bg-white" value={nervousSystem.other} onChange={e => setNervousSystem({...nervousSystem, other: e.target.value})} />
+                  <input type="text" placeholder="Other nervous issues..." className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-900 text-gray-800 dark:text-white" value={nervousSystem.other} onChange={e => setNervousSystem({...nervousSystem, other: e.target.value})} />
                 </div>
 
               </div>
@@ -436,18 +436,18 @@ export default function ProfileSetup() {
 
             {/* Other Defects */}
             <div>
-               <label className="block text-sm font-semibold text-gray-700 mb-2">Any other defects?</label>
-               <input type="text" placeholder="Describe any other medical defects not covered above" className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-medical-blue outline-none" value={otherDefects} onChange={e => setOtherDefects(e.target.value)} />
+               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Any other defects?</label>
+               <input type="text" placeholder="Describe any other medical defects not covered above" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue outline-none" value={otherDefects} onChange={e => setOtherDefects(e.target.value)} />
             </div>
 
             {/* Section 5: Emergency Contacts */}
             <div>
-              <div className="flex items-center justify-between border-b pb-2 mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Emergency Contacts</h2>
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Emergency Contacts</h2>
                 <button
                   type="button"
                   onClick={addEmergencyContact}
-                  className="flex items-center gap-1 text-sm bg-blue-50 text-medical-blue hover:bg-blue-100 px-3 py-1.5 rounded-xl font-bold transition-all border border-blue-100"
+                  className="flex items-center gap-1 text-sm bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-3 py-1.5 rounded-xl font-bold transition-all border border-blue-100 dark:border-blue-900/50"
                 >
                   <Plus size={16} /> Add Contact
                 </button>
@@ -455,33 +455,33 @@ export default function ProfileSetup() {
 
               <div className="space-y-4">
                 {emergencyContacts.map((contact, index) => (
-                  <div key={index} className="bg-gray-50/50 p-6 rounded-2xl border border-gray-200 relative flex flex-col md:flex-row gap-6 items-end hover:shadow-md transition-shadow">
+                  <div key={index} className="bg-gray-50/50 dark:bg-slate-800/60 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 relative flex flex-col md:flex-row gap-6 items-end hover:shadow-md transition-shadow">
                     <div className="flex-1 w-full">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">Contact Name</label>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Contact Name</label>
                       <input
                         type="text"
                         placeholder="e.g. Jane Doe"
                         required
-                        className="w-full px-4 py-2 rounded-xl border outline-none bg-white focus:ring-2 focus:ring-medical-blue"
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue"
                         value={contact.name}
                         onChange={e => updateEmergencyContact(index, 'name', e.target.value)}
                       />
                     </div>
                     <div className="flex-1 w-full">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone Number</label>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Phone Number</label>
                       <input
                         type="tel"
                         placeholder="e.g. +91 9876543210"
                         required
-                        className="w-full px-4 py-2 rounded-xl border outline-none bg-white focus:ring-2 focus:ring-medical-blue"
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue"
                         value={contact.phone}
                         onChange={e => updateEmergencyContact(index, 'phone', e.target.value)}
                       />
                     </div>
                     <div className="w-full md:w-56">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">Relation</label>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Relation</label>
                       <select
-                        className="w-full px-4 py-2 rounded-xl border outline-none bg-white focus:ring-2 focus:ring-medical-blue"
+                        className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-800 dark:text-white focus:ring-2 focus:ring-medical-blue"
                         value={contact.relation}
                         onChange={e => updateEmergencyContact(index, 'relation', e.target.value)}
                         required
@@ -500,7 +500,7 @@ export default function ProfileSetup() {
                       <button
                         type="button"
                         onClick={() => removeEmergencyContact(index)}
-                        className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2.5 rounded-xl transition-colors shrink-0 mb-0.5"
+                        className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 p-2.5 rounded-xl transition-colors shrink-0 mb-0.5"
                         title="Remove Contact"
                       >
                         <Trash2 size={20} />
@@ -511,7 +511,7 @@ export default function ProfileSetup() {
               </div>
             </div>
 
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t border-gray-200 dark:border-slate-800">
               <motion.button 
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
                 className="w-full py-4 bg-medical-dark text-white rounded-xl font-bold text-lg shadow-xl shadow-blue-900/20 disabled:opacity-50"
