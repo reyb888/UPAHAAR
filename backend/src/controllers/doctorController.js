@@ -463,11 +463,20 @@ export const getPatientDetailsForDoctor = (req, res) => {
 
         db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
             db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
-                res.json({
-                    status: 'APPROVED',
-                    patient,
-                    timeline: prescriptions || [],
-                    vitals: vitals || []
+                db.all(`
+                    SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
+                    FROM access_logs a
+                    JOIN users u ON a.doctor_id = u.id
+                    WHERE a.citizen_id = ?
+                    ORDER BY a.created_at DESC
+                `, [citizenId], (err, notifications) => {
+                    res.json({
+                        status: 'APPROVED',
+                        patient,
+                        timeline: prescriptions || [],
+                        vitals: vitals || [],
+                        notifications: notifications || []
+                    });
                 });
             });
         });

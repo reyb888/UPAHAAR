@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, User, Activity, Pill, Clock, ShieldCheck, 
   BrainCircuit, AlertTriangle, FileText, ChevronRight, 
-  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2, RefreshCw
+  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2, RefreshCw, Bell, Shield
 } from 'lucide-react';
 import DoctorSidebar from '../../../components/DoctorSidebar';
 import VitalChart from '../../../components/VitalChart';
@@ -18,6 +18,9 @@ export default function DoctorPatientsPage() {
   const [manualInputId, setManualInputId] = useState('');
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Active detail tab state
+  const [activeTab, setActiveTab] = useState<'timeline' | 'vitals' | 'allergies' | 'family-contacts' | 'notifications' | 'ai-search'>('timeline');
 
   // AI Search state for selected patient
   const [aiSearchQuery, setAiSearchQuery] = useState('');
@@ -152,11 +155,11 @@ export default function DoctorPatientsPage() {
   const patient = selectedPatientData?.patient;
   const timeline = selectedPatientData?.timeline || [];
   const vitals = selectedPatientData?.vitals || [];
+  const notifications = selectedPatientData?.notifications || [];
 
   const allergiesList = parseAllergies(patient?.allergies);
   const emergencyContacts = parseJsonData(patient?.emergency_contacts, []);
   const familyHistory = parseJsonData(patient?.family_history, []);
-  const hearingStatus = parseJsonData(patient?.hearing_status, {});
   const mentalHealth = parseJsonData(patient?.mental_health, {});
   const respiratoryDisorders = parseJsonData(patient?.respiratory_disorders, {});
   const heartProblems = parseJsonData(patient?.heart_problems, {});
@@ -175,11 +178,11 @@ export default function DoctorPatientsPage() {
               <Users className="text-medical-blue shrink-0" size={32} /> Patient Directory
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Select any patient below to view their full medical profile, vital history, and AI diagnostic summaries.
+              Select a patient from the list to view their structured profile, medical history, and access logs.
             </p>
           </div>
 
-          {/* Search Input */}
+          {/* Search & Refresh */}
           <div className="flex items-center gap-2">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3.5 top-3 text-gray-400 dark:text-gray-500" size={18} />
@@ -193,7 +196,7 @@ export default function DoctorPatientsPage() {
             </div>
             <button 
               onClick={fetchAccessiblePatients}
-              className="p-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl text-gray-600 dark:text-gray-300 hover:text-medical-blue transition-colors shadow-sm"
+              className="p-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl text-gray-600 dark:text-gray-300 hover:text-medical-blue transition-colors shadow-sm cursor-pointer"
               title="Refresh Patient List"
             >
               <RefreshCw size={18} />
@@ -201,7 +204,7 @@ export default function DoctorPatientsPage() {
           </div>
         </div>
 
-        {/* Manual Lookup Direct Form if needed */}
+        {/* Manual Lookup Input Bar */}
         <form onSubmit={handleManualSearch} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center gap-3">
           <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider shrink-0">Look up Patient ID:</span>
           <input 
@@ -223,7 +226,7 @@ export default function DoctorPatientsPage() {
         {loadingList ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical-blue mx-auto mb-3"></div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold">Loading patient list...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold">Loading patient directory...</p>
           </div>
         ) : filteredPatients.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center space-y-3">
@@ -311,7 +314,7 @@ export default function DoctorPatientsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-2xl font-extrabold text-gray-850 dark:text-white">{patient.full_name}</h2>
                     <span className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800/40 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Verified Profile
+                      <CheckCircle2 size={12} /> Registered Citizen Profile
                     </span>
                   </div>
 
@@ -354,270 +357,474 @@ export default function DoctorPatientsPage() {
               </div>
             </div>
 
-            {/* Gemini AI Medical Assistant Box */}
-            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 p-6 lg:p-8 rounded-3xl text-white shadow-lg space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-500/20 rounded-2xl backdrop-blur-md border border-purple-400/30">
-                  <BrainCircuit size={24} className="text-purple-300" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">AI Clinical Assistant</h3>
-                  <p className="text-xs text-purple-200">Query this patient's documented history using natural language</p>
-                </div>
-              </div>
+            {/* Structured Section Navigation Tabs (Patient Profile Style) */}
+            <div className="bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
+              <button
+                onClick={() => setActiveTab('timeline')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'timeline'
+                    ? 'bg-medical-blue text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <FileText size={16} /> Timeline & Prescriptions ({timeline.length})
+              </button>
 
-              <div className="flex gap-2">
-                <input 
-                  type="text"
-                  placeholder="e.g. Has this patient ever taken antibiotics or experienced asthma symptoms?"
-                  className="flex-1 px-4 py-3 rounded-2xl border border-purple-400/30 bg-white/10 text-white placeholder-purple-200/60 outline-none text-xs focus:ring-2 focus:ring-purple-400 backdrop-blur-md"
-                  value={aiSearchQuery}
-                  onChange={e => setAiSearchQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
-                />
-                <button
-                  onClick={handleAiSearch}
-                  disabled={aiSearchLoading}
-                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 rounded-2xl text-xs transition-colors shrink-0 disabled:opacity-50"
-                >
-                  {aiSearchLoading ? 'Analyzing...' : 'Search'}
-                </button>
-              </div>
+              <button
+                onClick={() => setActiveTab('vitals')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'vitals'
+                    ? 'bg-medical-blue text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Activity size={16} /> Vital Tracker ({vitals.length})
+              </button>
 
-              {aiSearchResult && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl text-xs leading-relaxed text-purple-50 space-y-1"
-                >
-                  <span className="font-bold text-purple-200 block mb-1">AI Diagnostic Summary:</span>
-                  <div className="whitespace-pre-line">{aiSearchResult}</div>
-                </motion.div>
-              )}
+              <button
+                onClick={() => setActiveTab('allergies')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'allergies'
+                    ? 'bg-medical-blue text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <AlertTriangle size={16} /> Allergies & Conditions ({allergiesList.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('family-contacts')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'family-contacts'
+                    ? 'bg-medical-blue text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Users size={16} /> Family & Contacts ({familyHistory.length + emergencyContacts.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'notifications'
+                    ? 'bg-medical-blue text-white shadow-md'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Bell size={16} /> Access Notifications ({notifications.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('ai-search')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all shrink-0 cursor-pointer ${
+                  activeTab === 'ai-search'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40'
+                }`}
+              >
+                <BrainCircuit size={16} /> AI Clinical Assistant
+              </button>
             </div>
 
-            {/* Prescriptions & Timeline */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
-                <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2">
-                  <FileText className="text-medical-blue" size={22} /> Prescriptions & Medical Timeline
-                </h3>
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  {timeline.length} Documented Records
-                </span>
-              </div>
+            {/* TAB CONTENT PANELS */}
+            <AnimatePresence mode="wait">
+              {/* TAB 1: Timeline & Prescriptions */}
+              {activeTab === 'timeline' && (
+                <motion.div
+                  key="timeline"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-6"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+                    <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2">
+                      <FileText className="text-medical-blue" size={22} /> Prescriptions & Medical Timeline
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      {timeline.length} Records Uploaded
+                    </span>
+                  </div>
 
-              {timeline.length === 0 ? (
-                <div className="text-center p-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 text-sm">
-                  No medical prescriptions uploaded yet for this patient.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {timeline.map((record: any) => {
-                    const isRaw = viewModes[record.id] === 'raw';
-                    let medicines: any[] = [];
-                    try {
-                      medicines = typeof record.medicines === 'string' ? JSON.parse(record.medicines) : (record.medicines || []);
-                    } catch (e) {}
+                  {timeline.length === 0 ? (
+                    <div className="text-center p-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-3">
+                      <FileText size={36} className="mx-auto text-gray-400 dark:text-gray-600" />
+                      <h4 className="font-bold text-gray-800 dark:text-white text-base">No medical prescriptions uploaded yet</h4>
+                      <p className="text-xs max-w-sm mx-auto">
+                        This patient has not uploaded any prescription receipts or medical records to their timeline yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {timeline.map((record: any) => {
+                        const isRaw = viewModes[record.id] === 'raw';
+                        let medicines: any[] = [];
+                        try {
+                          medicines = typeof record.medicines === 'string' ? JSON.parse(record.medicines) : (record.medicines || []);
+                        } catch (e) {}
 
-                    return (
-                      <div key={record.id} className="bg-gray-50/70 dark:bg-slate-800/70 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 space-y-4">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                              {new Date(record.created_at).toLocaleDateString()} at {new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            {record.is_fraudulent === 1 && (
-                              <span className="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <AlertTriangle size={11} /> Flagged
-                              </span>
-                            )}
-                          </div>
+                        return (
+                          <div key={record.id} className="bg-gray-50/80 dark:bg-slate-800/70 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 space-y-4 shadow-sm">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                                  {new Date(record.created_at).toLocaleDateString()} at {new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {record.is_fraudulent === 1 && (
+                                  <span className="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <AlertTriangle size={11} /> Flagged
+                                  </span>
+                                )}
+                              </div>
 
-                          <button
-                            onClick={() => setViewModes({ ...viewModes, [record.id]: isRaw ? 'summary' : 'raw' })}
-                            className="text-xs font-bold text-medical-blue dark:text-blue-400 hover:underline"
-                          >
-                            {isRaw ? 'Show AI Summary' : 'View OCR Text'}
-                          </button>
-                        </div>
+                              <button
+                                onClick={() => setViewModes({ ...viewModes, [record.id]: isRaw ? 'summary' : 'raw' })}
+                                className="text-xs font-bold text-medical-blue dark:text-blue-400 hover:underline cursor-pointer"
+                              >
+                                {isRaw ? 'Show AI Summary' : 'View OCR Text'}
+                              </button>
+                            </div>
 
-                        {isRaw ? (
-                          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {record.raw_ocr_text || 'No raw text available'}
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <p className="text-sm font-semibold text-gray-800 dark:text-white leading-relaxed">
-                              {record.ai_extracted_data || 'Medical Record'}
-                            </p>
+                            {isRaw ? (
+                              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                {record.raw_ocr_text || 'No raw text available'}
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-white leading-relaxed">
+                                  {record.ai_extracted_data || 'Medical Record'}
+                                </p>
 
-                            {medicines.length > 0 && (
-                              <div className="space-y-2">
-                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prescribed Medications:</span>
-                                <div className="flex flex-wrap gap-2">
-                                  {medicines.map((med: any, mIdx: number) => (
-                                    <div key={mIdx} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2 text-gray-800 dark:text-white">
-                                      <Pill size={14} className="text-medical-blue dark:text-blue-400" />
-                                      <span className="font-bold">{med.name}</span>
-                                      {med.frequency && <span className="text-gray-400">• {med.frequency}</span>}
-                                      {med.duration && <span className="text-gray-400">• {med.duration}</span>}
+                                {medicines.length > 0 && (
+                                  <div className="space-y-2">
+                                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prescribed Medications:</span>
+                                    <div className="flex flex-wrap gap-2">
+                                      {medicines.map((med: any, mIdx: number) => (
+                                        <div key={mIdx} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2 text-gray-800 dark:text-white">
+                                          <Pill size={14} className="text-medical-blue dark:text-blue-400" />
+                                          <span className="font-bold">{med.name}</span>
+                                          {med.frequency && <span className="text-gray-400">• {med.frequency}</span>}
+                                          {med.duration && <span className="text-gray-400">• {med.duration}</span>}
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </div>
 
-            {/* Vitals Charts Section */}
-            {vitals.length > 0 && (
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
-                <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
-                  <Activity className="text-emerald-500" size={22} /> Vital Tracker & Trends
-                </h3>
-                <VitalChart vitals={vitals} />
-              </div>
-            )}
+              {/* TAB 2: Vital Tracker */}
+              {activeTab === 'vitals' && (
+                <motion.div
+                  key="vitals"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4"
+                >
+                  <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                    <Activity className="text-emerald-500" size={22} /> Vital Tracker & Trends
+                  </h3>
+                  {vitals.length === 0 ? (
+                    <div className="text-center p-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-2">
+                      <Activity size={36} className="mx-auto text-gray-400 dark:text-gray-600" />
+                      <h4 className="font-bold text-gray-800 dark:text-white text-base">No vitals logged yet</h4>
+                      <p className="text-xs max-w-sm mx-auto">
+                        Patient has not recorded heart rate, blood sugar, or blood pressure readings yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <VitalChart vitals={vitals} />
+                  )}
+                </motion.div>
+              )}
 
-            {/* Grid 2 Columns: Allergies & Systemic Conditions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Allergies Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
-                <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
-                  <AlertTriangle className="text-amber-500" size={20} /> Allergies & Sensitivities
-                </h3>
+              {/* TAB 3: Allergies & Conditions */}
+              {activeTab === 'allergies' && (
+                <motion.div
+                  key="allergies"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                >
+                  {/* Allergies Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                      <AlertTriangle className="text-amber-500" size={20} /> Allergies & Sensitivities
+                    </h3>
 
-                {allergiesList.length === 0 ? (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">No known allergies reported by patient.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {allergiesList.map((alg: string, idx: number) => (
-                      <span key={idx} className="bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-xl text-xs font-bold capitalize flex items-center gap-1.5">
-                        ⚠️ {alg}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Systemic Conditions Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
-                <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
-                  <Heart className="text-rose-500" size={20} /> Systemic Health Conditions
-                </h3>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
-                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Respiratory</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {respiratoryDisorders.asthma ? 'Asthma ' : ''}
-                      {respiratoryDisorders.copd ? 'COPD ' : ''}
-                      {respiratoryDisorders.other || (!respiratoryDisorders.asthma && !respiratoryDisorders.copd ? 'None' : '')}
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
-                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Cardiovascular</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {heartProblems.hypertension ? 'Hypertension ' : ''}
-                      {heartProblems.arrhythmia ? 'Arrhythmia ' : ''}
-                      {heartProblems.other || (!heartProblems.hypertension && !heartProblems.arrhythmia ? 'None' : '')}
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
-                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Mental Health</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {mentalHealth.anxiety ? 'Anxiety ' : ''}
-                      {mentalHealth.depression ? 'Depression ' : ''}
-                      {mentalHealth.other || (!mentalHealth.anxiety && !mentalHealth.depression ? 'None' : '')}
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-800">
-                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Neurological</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {nervousDisorders.epilepsy ? 'Epilepsy ' : ''}
-                      {nervousDisorders.other || (!nervousDisorders.epilepsy ? 'None' : '')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Grid 2 Columns: Family History & Emergency Contacts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-              {/* Family Disease History Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
-                <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
-                  Family Disease History
-                </h3>
-
-                {familyHistory.length === 0 ? (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">No family medical history recorded.</p>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-gray-150 dark:border-slate-800">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
-                          <th className="p-2.5">Relation</th>
-                          <th className="p-2.5">Condition</th>
-                          <th className="p-2.5">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                        {familyHistory.map((item: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
-                            <td className="p-2.5 font-bold text-gray-800 dark:text-white">{item.relation || 'N/A'}</td>
-                            <td className="p-2.5 text-gray-600 dark:text-gray-300">{item.disease || 'N/A'}</td>
-                            <td className="p-2.5 text-gray-400 dark:text-gray-500">{item.notes || '-'}</td>
-                          </tr>
+                    {allergiesList.length === 0 ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-slate-950 rounded-2xl text-center border border-gray-100 dark:border-slate-800">
+                        No known allergies reported by patient.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {allergiesList.map((alg: string, idx: number) => (
+                          <span key={idx} className="bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize flex items-center gap-1.5">
+                            ⚠️ {alg}
+                          </span>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Emergency Contacts Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
-                <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
-                  Emergency Contacts
-                </h3>
-
-                {emergencyContacts.length === 0 ? (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">No emergency contacts listed.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {emergencyContacts.map((contact: any, idx: number) => (
-                      <div key={idx} className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-xs text-gray-850 dark:text-white">{contact.name || 'Contact'}</h4>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{contact.relation || 'Emergency Contact'}</p>
-                        </div>
-                        <a 
-                          href={`tel:${contact.phone}`} 
-                          className="bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-colors"
-                        >
-                          <Phone size={13} /> {contact.phone}
-                        </a>
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
 
-            </div>
+                  {/* Systemic Conditions Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                      <Heart className="text-rose-500" size={20} /> Systemic Health Conditions
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                        <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Respiratory</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {respiratoryDisorders.asthma ? 'Asthma ' : ''}
+                          {respiratoryDisorders.copd ? 'COPD ' : ''}
+                          {respiratoryDisorders.other || (!respiratoryDisorders.asthma && !respiratoryDisorders.copd ? 'None' : '')}
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                        <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Cardiovascular</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {heartProblems.hypertension ? 'Hypertension ' : ''}
+                          {heartProblems.arrhythmia ? 'Arrhythmia ' : ''}
+                          {heartProblems.other || (!heartProblems.hypertension && !heartProblems.arrhythmia ? 'None' : '')}
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                        <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Mental Health</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {mentalHealth.anxiety ? 'Anxiety ' : ''}
+                          {mentalHealth.depression ? 'Depression ' : ''}
+                          {mentalHealth.other || (!mentalHealth.anxiety && !mentalHealth.depression ? 'None' : '')}
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700">
+                        <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Neurological</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {nervousDisorders.epilepsy ? 'Epilepsy ' : ''}
+                          {nervousDisorders.other || (!nervousDisorders.epilepsy ? 'None' : '')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB 4: Family & Emergency */}
+              {activeTab === 'family-contacts' && (
+                <motion.div
+                  key="family-contacts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                >
+                  {/* Family Disease History Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
+                      Family Disease History
+                    </h3>
+
+                    {familyHistory.length === 0 ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-slate-950 rounded-2xl text-center border border-gray-100 dark:border-slate-800">
+                        No family medical history recorded.
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto rounded-2xl border border-gray-150 dark:border-slate-800">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
+                              <th className="p-3">Relation</th>
+                              <th className="p-3">Condition</th>
+                              <th className="p-3">Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                            {familyHistory.map((item: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
+                                <td className="p-3 font-bold text-gray-800 dark:text-white">{item.relation || 'N/A'}</td>
+                                <td className="p-3 text-gray-600 dark:text-gray-300">{item.disease || 'N/A'}</td>
+                                <td className="p-3 text-gray-400 dark:text-gray-500">{item.notes || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Emergency Contacts Card */}
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                    <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
+                      Emergency Contacts
+                    </h3>
+
+                    {emergencyContacts.length === 0 ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-slate-950 rounded-2xl text-center border border-gray-100 dark:border-slate-800">
+                        No emergency contacts listed.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {emergencyContacts.map((contact: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                              <h4 className="font-bold text-xs text-gray-850 dark:text-white">{contact.name || 'Contact'}</h4>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400">{contact.relation || 'Emergency Contact'}</p>
+                            </div>
+                            <a 
+                              href={`tel:${contact.phone}`} 
+                              className="bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-colors"
+                            >
+                              <Phone size={13} /> {contact.phone}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB 5: Access Notifications & Logs */}
+              {activeTab === 'notifications' && (
+                <motion.div
+                  key="notifications"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+                    <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2">
+                      <Bell className="text-emerald-500" size={22} /> Doctor Access Notifications & Audit Logs
+                    </h3>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      {notifications.length} Access Events
+                    </span>
+                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div className="text-center p-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 space-y-2">
+                      <Shield size={36} className="mx-auto text-gray-400 dark:text-gray-600" />
+                      <h4 className="font-bold text-gray-800 dark:text-white text-base">No doctor access events recorded</h4>
+                      <p className="text-xs max-w-sm mx-auto">
+                        This patient has not registered any past access logs or doctor consent notifications yet.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="w-full overflow-x-auto rounded-2xl border border-gray-150 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-950">
+                      <table className="w-full min-w-[550px] border-collapse text-left text-xs">
+                        <thead>
+                          <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
+                            <th className="p-3">Doctor ID</th>
+                            <th className="p-3">Doctor Name</th>
+                            <th className="p-3">Access Method</th>
+                            <th className="p-3">Accessed Date</th>
+                            <th className="p-3">Session Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                          {notifications.map((log: any) => {
+                            return (
+                              <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="p-3 font-mono font-bold text-gray-700 dark:text-gray-300">
+                                  {log.doctor_upahaar_id || 'N/A'}
+                                </td>
+                                <td className="p-3 font-bold text-gray-800 dark:text-white">
+                                  Dr. {log.doctor_name || 'Doctor'}
+                                </td>
+                                <td className="p-3 font-semibold text-gray-600 dark:text-gray-300">
+                                  <span className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2.5 py-1 rounded-md text-[10px]">
+                                    {log.method || 'MANUAL'}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-gray-500 dark:text-gray-400">
+                                  <div>{new Date(log.created_at).toLocaleDateString()}</div>
+                                  <div className="font-semibold text-gray-400 dark:text-gray-500 text-[10px]">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                </td>
+                                <td className="p-3">
+                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                    log.status === 'APPROVED' || log.status === 'ACKNOWLEDGED' || log.status === 'QR_SCAN'
+                                      ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/40'
+                                      : log.status === 'REVOKED'
+                                      ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40'
+                                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
+                                  }`}>
+                                    {log.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* TAB 6: AI Clinical Assistant */}
+              {activeTab === 'ai-search' && (
+                <motion.div
+                  key="ai-search"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 p-6 lg:p-8 rounded-3xl text-white shadow-lg space-y-5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-purple-500/20 rounded-2xl backdrop-blur-md border border-purple-400/30">
+                      <BrainCircuit size={28} className="text-purple-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">AI Clinical Assistant</h3>
+                      <p className="text-xs text-purple-200">Query this patient's documented history using natural language</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      placeholder="e.g. Has this patient ever taken antibiotics or experienced asthma symptoms?"
+                      className="flex-1 px-4 py-3.5 rounded-2xl border border-purple-400/30 bg-white/10 text-white placeholder-purple-200/60 outline-none text-xs focus:ring-2 focus:ring-purple-400 backdrop-blur-md"
+                      value={aiSearchQuery}
+                      onChange={e => setAiSearchQuery(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                    />
+                    <button
+                      onClick={handleAiSearch}
+                      disabled={aiSearchLoading}
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3.5 rounded-2xl text-xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                    >
+                      {aiSearchLoading ? 'Analyzing...' : 'Search History'}
+                    </button>
+                  </div>
+
+                  {aiSearchResult && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white/10 backdrop-blur-md border border-white/15 p-5 rounded-2xl text-xs leading-relaxed text-purple-50 space-y-2"
+                    >
+                      <span className="font-bold text-purple-200 block text-sm">AI Diagnostic Summary:</span>
+                      <div className="whitespace-pre-line text-sm font-light">{aiSearchResult}</div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
           </div>
         ) : null}
