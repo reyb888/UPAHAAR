@@ -115,7 +115,7 @@ export default function DoctorSettings() {
       id: 'profile',
       title: 'Professional Profile',
       subtext: 'Name, photo, job profile, medical education & past work experiences',
-      icon: <User size={24} className="text-blue-500" />,
+      icon: <User size={24} className="text-blue-500 dark:text-blue-400" />,
       onClick: () => router.push('/dashboard/doctor/profile-setup'),
       type: 'link'
     },
@@ -130,7 +130,7 @@ export default function DoctorSettings() {
       id: 'history',
       title: 'Patient History Accessed',
       subtext: 'View log of all patient records accessed during consults',
-      icon: <ShieldCheck size={24} className="text-emerald-500" />,
+      icon: <ShieldCheck size={24} className="text-emerald-500 dark:text-emerald-400" />,
       onClick: () => setShowHistoryList(!showHistoryList),
       type: 'expandable'
     },
@@ -138,7 +138,7 @@ export default function DoctorSettings() {
       id: 'logout',
       title: 'Logout',
       subtext: 'Securely sign out of your UPAHAAR doctor registry account',
-      icon: <LogOut size={24} className="text-red-500" />,
+      icon: <LogOut size={24} className="text-red-500 dark:text-red-400" />,
       onClick: handleLogout,
       type: 'action'
     }
@@ -150,7 +150,7 @@ export default function DoctorSettings() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
       
       {/* Sidebar Navigation */}
       <DoctorSidebar activePage="settings" />
@@ -162,15 +162,15 @@ export default function DoctorSettings() {
           <h1 className="text-3xl font-extrabold text-gray-800 dark:text-white">Doctor Settings</h1>
 
           {loading ? (
-            <div className="text-center p-12 bg-white rounded-3xl shadow-sm border border-gray-100">
+            <div className="text-center p-12 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-blue mx-auto mb-4"></div>
-              <p className="text-gray-500 font-semibold">Loading doctor settings...</p>
+              <p className="text-gray-500 dark:text-gray-400 font-semibold">Loading doctor settings...</p>
             </div>
           ) : (
             <div className="space-y-6">
               
               {/* WhatsApp-style User Details Card */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between relative overflow-visible">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 flex items-center justify-between relative overflow-visible">
                 <div className="flex items-center gap-5">
                   <div className="relative">
                     {profile?.face_photo_url && profile.face_photo_url !== 'dummy-url-for-now' ? (
@@ -180,14 +180,14 @@ export default function DoctorSettings() {
                         className="w-20 h-20 rounded-full object-cover border-4 border-medical-blue/20 shadow-md"
                       />
                     ) : (
-                      <div className="w-20 h-20 bg-medical-blue/10 text-medical-blue rounded-full flex items-center justify-center font-bold text-2xl border border-medical-blue/20 shadow-inner">
+                      <div className="w-20 h-20 bg-medical-blue/10 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-2xl border border-medical-blue/20 dark:border-blue-800/40 shadow-inner">
                         {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'D'}
                       </div>
                     )}
                     
                     {/* Status thought bubble */}
                     <div 
-                      className="absolute -top-6 -right-6 md:-right-10 bg-gray-900 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg max-w-[130px] md:max-w-[160px] truncate border border-gray-700/50 flex items-center gap-1 cursor-pointer hover:bg-gray-800 transition-all"
+                      className="absolute -top-6 -right-6 md:-right-10 bg-gray-900 dark:bg-slate-800 text-white text-[11px] px-3 py-1.5 rounded-full shadow-lg max-w-[130px] md:max-w-[160px] truncate border border-gray-700/50 dark:border-slate-700 flex items-center gap-1 cursor-pointer hover:bg-gray-800 dark:hover:bg-slate-700 transition-all"
                       onClick={() => { setIsEditingThought(true); setTempThought(thought === 'Available for consultations' ? '' : thought); }}
                     >
                       💬 <span className="italic">{thought}</span>
@@ -199,11 +199,11 @@ export default function DoctorSettings() {
                       Dr. {profile?.full_name || 'Doctor'}
                     </h2>
                     {profile?.job_profile && (
-                      <p className="text-xs font-semibold text-medical-blue mt-0.5 flex items-center gap-1">
+                      <p className="text-xs font-semibold text-medical-blue dark:text-blue-400 mt-0.5 flex items-center gap-1">
                         <Briefcase size={13} /> {profile.job_profile}
                       </p>
                     )}
-                    <p className="text-sm text-gray-500 font-medium mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
                       ID: <span className="font-mono tracking-wider">{profile?.upahaar_id || 'N/A'}</span>
                     </p>
                   </div>
@@ -217,22 +217,22 @@ export default function DoctorSettings() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden bg-blue-50/50 border border-blue-100 rounded-2xl p-4 shadow-inner"
+                    className="overflow-hidden bg-blue-50/50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 rounded-2xl p-4 shadow-inner"
                   >
                     <form onSubmit={handleSaveThought} className="flex gap-2">
                       <input 
                         type="text" 
                         maxLength={45}
                         placeholder="Update status or availability..."
-                        className="flex-1 px-4 py-2 rounded-xl border outline-none bg-white text-sm"
+                        className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 outline-none bg-white dark:bg-slate-950 text-gray-850 dark:text-white text-sm"
                         value={tempThought}
                         onChange={e => setTempThought(e.target.value)}
                         autoFocus
                       />
-                      <button type="submit" className="bg-medical-blue text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition">
+                      <button type="submit" className="bg-medical-blue hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">
                         Save
                       </button>
-                      <button type="button" className="text-gray-500 px-2 text-sm hover:underline" onClick={() => setIsEditingThought(false)}>
+                      <button type="button" className="text-gray-500 dark:text-gray-400 px-2 text-sm hover:underline" onClick={() => setIsEditingThought(false)}>
                         Cancel
                       </button>
                     </form>
@@ -242,34 +242,34 @@ export default function DoctorSettings() {
 
               {/* Search Bar */}
               <div className="relative">
-                <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
+                <Search className="absolute left-4 top-3.5 text-gray-400 dark:text-gray-500" size={18} />
                 <input 
                   type="text" 
                   placeholder="Search doctor settings"
-                  className="w-full pl-12 pr-4 py-3 rounded-2xl border outline-none bg-white focus:ring-2 focus:ring-medical-blue transition-shadow text-sm"
+                  className="w-full pl-12 pr-4 py-3 rounded-2xl border border-gray-200 dark:border-slate-800 outline-none bg-white dark:bg-slate-900 text-gray-850 dark:text-white focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 transition-shadow text-sm placeholder-gray-400 dark:placeholder-gray-500"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                 />
               </div>
 
               {/* Options Group Container */}
-              <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-150">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-800 divide-y divide-gray-150 dark:divide-slate-800">
                 {filteredOptions.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500 font-medium">
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400 font-medium">
                     No settings match your search query
                   </div>
                 ) : (
                   filteredOptions.map((opt) => (
-                    <div key={opt.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                    <div key={opt.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors">
                       {opt.type === 'toggle' ? (
                         <div className="flex items-center justify-between">
                           <div className="flex items-start gap-4">
-                            <div className="p-2 bg-gray-100 rounded-xl shrink-0 mt-0.5">
+                            <div className="p-2 bg-gray-100 dark:bg-slate-800 rounded-xl shrink-0 mt-0.5">
                               {opt.icon}
                             </div>
                             <div>
                               <h3 className="font-bold text-gray-850 dark:text-white text-base">{opt.title}</h3>
-                              <p className="text-sm text-gray-500 mt-0.5">{opt.subtext}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{opt.subtext}</p>
                             </div>
                           </div>
                           {/* Toggle Switch */}
@@ -293,12 +293,12 @@ export default function DoctorSettings() {
                           onClick={opt.onClick}
                         >
                           <div className="flex items-start gap-4 w-full">
-                            <div className="p-2 bg-gray-100 rounded-xl shrink-0 mt-0.5">
+                            <div className="p-2 bg-gray-100 dark:bg-slate-800 rounded-xl shrink-0 mt-0.5">
                               {opt.icon}
                             </div>
                             <div className="w-full">
                               <h3 className="font-bold text-gray-850 dark:text-white text-base">{opt.title}</h3>
-                              <p className="text-sm text-gray-500 mt-0.5">{opt.subtext}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{opt.subtext}</p>
                             </div>
                           </div>
                         </div>
@@ -306,16 +306,16 @@ export default function DoctorSettings() {
 
                       {/* Expandable Patient Access Logs list */}
                       {opt.id === 'history' && showHistoryList && (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
                           {accessHistory.length === 0 ? (
-                            <div className="text-center p-6 text-gray-500 bg-gray-50 rounded-2xl border border-gray-100 text-sm">
+                            <div className="text-center p-6 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 text-sm">
                               No patient records accessed yet.
                             </div>
                           ) : (
-                            <div className="w-full overflow-x-auto rounded-2xl border border-gray-150 shadow-sm bg-white dark:bg-slate-900">
+                            <div className="w-full overflow-x-auto rounded-2xl border border-gray-150 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-950">
                               <table className="w-full min-w-[520px] border-collapse text-left">
                                 <thead>
-                                  <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150">
+                                  <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150 dark:border-slate-700">
                                     <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient ID</th>
                                     <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient Name</th>
                                     <th className="p-3 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Method</th>
@@ -363,7 +363,7 @@ export default function DoctorSettings() {
                                     const endStatus = getEndSessionStatus();
 
                                     return (
-                                      <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                      <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-colors">
                                         <td className="p-3 text-xs font-mono font-bold text-gray-700 dark:text-gray-300">
                                           {log.patient_upahaar_id || 'N/A'}
                                         </td>
@@ -371,13 +371,13 @@ export default function DoctorSettings() {
                                           {log.patient_name}
                                         </td>
                                         <td className="p-3 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                          <span className="bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-md text-[10px]">
+                                          <span className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-[10px]">
                                             {log.method || 'MANUAL'}
                                           </span>
                                         </td>
                                         <td className="p-3 text-[11px] text-gray-500 dark:text-gray-400">
                                           <div>{new Date(log.created_at).toLocaleDateString()}</div>
-                                          <div className="font-semibold text-gray-400 text-[10px]">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                          <div className="font-semibold text-gray-400 dark:text-gray-500 text-[10px]">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                         </td>
                                         <td className="p-3">
                                           <span className={endStatus.style}>{endStatus.text}</span>

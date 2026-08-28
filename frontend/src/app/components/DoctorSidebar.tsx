@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Scan, Settings, Shield } from 'lucide-react';
+import { Scan, Users, Settings, Shield } from 'lucide-react';
 
 interface DoctorSidebarProps {
-  activePage: 'workspace' | 'settings';
+  activePage: 'workspace' | 'patients' | 'settings';
 }
 
 export default function DoctorSidebar({ activePage }: DoctorSidebarProps) {
@@ -25,6 +25,16 @@ export default function DoctorSidebar({ activePage }: DoctorSidebarProps) {
             }`}
           >
             <Scan size={20} /> Doctor Workspace
+          </Link>
+          <Link
+            href="/dashboard/doctor/patients"
+            className={`flex items-center gap-3 p-3 rounded-lg font-semibold transition-colors ${
+              activePage === 'patients'
+                ? 'bg-white/10 text-white'
+                : 'hover:bg-white/5 text-gray-300'
+            }`}
+          >
+            <Users size={20} /> My Patients
           </Link>
           <Link
             href="/dashboard/doctor/settings"

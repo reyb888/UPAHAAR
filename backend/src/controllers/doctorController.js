@@ -411,3 +411,65 @@ export const getDoctorAccessedHistory = (req, res) => {
         res.json({ history: logs || [] });
     });
 };
+
+export const getAccessiblePatients = (req, res) => {
+    const doctorId = req.user.id;
+
+    db.all(`
+        SELECT 
+            u.id as citizen_user_id,
+            u.full_name,
+            u.upahaar_id,
+            u.email,
+            u.phone,
+            u.face_photo_url,
+            m.blood_group,
+            m.dob,
+            m.gender,
+            m.allergies
+        FROM users u
+        LEFT JOIN medical_profiles m ON u.id = m.user_id
+        WHERE u.role = 'CITIZEN'
+        ORDER BY u.full_name ASC
+    `, [], (err, patients) => {
+        if (err) {
+            console.error('[ACCESSIBLE_PATIENTS] Error fetching patients:', err);
+            return res.status(500).json({ message: 'Error fetching patients', error: err.message });
+        }
+        res.json({ patients: patients || [] });
+    });
+};
+
+export const getPatientDetailsForDoctor = (req, res) => {
+    const { upahaar_id } = req.params;
+
+    if (!upahaar_id) {
+        return res.status(400).json({ message: 'UPAHAAR ID is required' });
+    }
+
+    const targetId = upahaar_id.trim().toUpperCase();
+
+    db.get(`
+        SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+        FROM users u 
+        LEFT JOIN medical_profiles m ON u.id = m.user_id 
+        WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'
+    `, [targetId], (err, patient) => {
+        if (err || !patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        const citizenId = patient.citizen_user_id;
+
+        db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+            db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                res.json({
+                    status: 'APPROVED',
+                    patient,
+                    timeline: prescriptions || [],
+                    vitals: vitals || []
+                });
+            });
+        });
+    });
+};
