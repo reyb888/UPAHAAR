@@ -414,6 +414,7 @@ export const getDoctorAccessedHistory = (req, res) => {
 
 export const getAccessiblePatients = (req, res) => {
     const doctorId = req.user.id;
+
     db.all(`
         SELECT 
             u.id as citizen_user_id,
@@ -425,22 +426,50 @@ export const getAccessiblePatients = (req, res) => {
             m.blood_group,
             m.dob,
             m.gender,
-            m.allergies,
-            MAX(a.created_at) as last_accessed_at,
-            a.method,
-            a.status as access_status,
-            a.logged_out_at
-        FROM access_logs a
-        JOIN users u ON a.citizen_id = u.id
+            m.allergies
+        FROM users u
         LEFT JOIN medical_profiles m ON u.id = m.user_id
-        WHERE a.doctor_id = ? AND a.status IN ('APPROVED', 'ACKNOWLEDGED', 'QR_SCAN')
-        GROUP BY u.id
-        ORDER BY last_accessed_at DESC
-    `, [doctorId], (err, patients) => {
+        WHERE u.role = 'CITIZEN'
+        ORDER BY u.full_name ASC
+    `, [], (err, patients) => {
         if (err) {
             console.error('[ACCESSIBLE_PATIENTS] Error fetching patients:', err);
-            return res.status(500).json({ message: 'Error fetching accessible patients' });
+            return res.status(500).json({ message: 'Error fetching patients', error: err.message });
         }
         res.json({ patients: patients || [] });
+    });
+};
+
+export const getPatientDetailsForDoctor = (req, res) => {
+    const { upahaar_id } = req.params;
+
+    if (!upahaar_id) {
+        return res.status(400).json({ message: 'UPAHAAR ID is required' });
+    }
+
+    const targetId = upahaar_id.trim().toUpperCase();
+
+    db.get(`
+        SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+        FROM users u 
+        LEFT JOIN medical_profiles m ON u.id = m.user_id 
+        WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'
+    `, [targetId], (err, patient) => {
+        if (err || !patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        const citizenId = patient.citizen_user_id;
+
+        db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+            db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                res.json({
+                    status: 'APPROVED',
+                    patient,
+                    timeline: prescriptions || [],
+                    vitals: vitals || []
+                });
+            });
+        });
     });
 };

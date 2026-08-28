@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, User, Activity, Pill, Clock, ShieldCheck, 
   BrainCircuit, AlertTriangle, FileText, ChevronRight, 
-  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2
+  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2, RefreshCw
 } from 'lucide-react';
 import DoctorSidebar from '../../../components/DoctorSidebar';
 import VitalChart from '../../../components/VitalChart';
@@ -15,6 +15,7 @@ export default function DoctorPatientsPage() {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [selectedPatientData, setSelectedPatientData] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [manualInputId, setManualInputId] = useState('');
   const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -67,7 +68,7 @@ export default function DoctorPatientsPage() {
         const data = await response.json();
         const list = data.patients || [];
         setPatients(list);
-        if (list.length > 0 && !selectedPatientId) {
+        if (list.length > 0) {
           fetchPatientDetail(list[0].upahaar_id);
         }
       }
@@ -79,6 +80,7 @@ export default function DoctorPatientsPage() {
   };
 
   const fetchPatientDetail = async (upahaarId: string) => {
+    if (!upahaarId) return;
     setSelectedPatientId(upahaarId);
     setLoadingDetail(true);
     setAiSearchResult(null);
@@ -86,12 +88,15 @@ export default function DoctorPatientsPage() {
 
     const token = localStorage.getItem('upahaar_token');
     try {
-      const response = await fetch(`/api/doctors/scan/${upahaarId}`, {
+      const response = await fetch(`/api/doctors/patient-details/${upahaarId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
         setSelectedPatientData(data);
+      } else {
+        const errData = await response.json();
+        alert(errData.message || "Could not fetch patient details");
       }
     } catch (err) {
       console.error('Failed to fetch patient detail:', err);
@@ -103,6 +108,13 @@ export default function DoctorPatientsPage() {
   useEffect(() => {
     fetchAccessiblePatients();
   }, []);
+
+  const handleManualSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualInputId.trim()) {
+      fetchPatientDetail(manualInputId.trim().toUpperCase());
+    }
+  };
 
   const handleAiSearch = async () => {
     if (!aiSearchQuery.trim() || !selectedPatientId) return;
@@ -160,7 +172,7 @@ export default function DoctorPatientsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-850 dark:text-white flex items-center gap-3">
-              <Users className="text-medical-blue shrink-0" size={32} /> Accessible Patients
+              <Users className="text-medical-blue shrink-0" size={32} /> Patient Directory
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Select any patient below to view their full medical profile, vital history, and AI diagnostic summaries.
@@ -168,32 +180,59 @@ export default function DoctorPatientsPage() {
           </div>
 
           {/* Search Input */}
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3.5 top-3 text-gray-400 dark:text-gray-500" size={18} />
-            <input 
-              type="text"
-              placeholder="Search patients by name or ID..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-850 dark:text-white outline-none focus:ring-2 focus:ring-medical-blue text-xs transition-all placeholder-gray-400 dark:placeholder-gray-500"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3.5 top-3 text-gray-400 dark:text-gray-500" size={18} />
+              <input 
+                type="text"
+                placeholder="Filter patient list..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-850 dark:text-white outline-none focus:ring-2 focus:ring-medical-blue text-xs transition-all placeholder-gray-400 dark:placeholder-gray-500"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button 
+              onClick={fetchAccessiblePatients}
+              className="p-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl text-gray-600 dark:text-gray-300 hover:text-medical-blue transition-colors shadow-sm"
+              title="Refresh Patient List"
+            >
+              <RefreshCw size={18} />
+            </button>
           </div>
         </div>
+
+        {/* Manual Lookup Direct Form if needed */}
+        <form onSubmit={handleManualSearch} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider shrink-0">Look up Patient ID:</span>
+          <input 
+            type="text"
+            placeholder="e.g. UPHR-123456"
+            className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-950 text-gray-850 dark:text-white outline-none text-xs uppercase font-mono"
+            value={manualInputId}
+            onChange={e => setManualInputId(e.target.value)}
+          />
+          <button 
+            type="submit"
+            className="bg-medical-blue hover:bg-blue-700 text-white font-bold px-5 py-2 rounded-xl text-xs transition-colors shrink-0 cursor-pointer"
+          >
+            Open Patient
+          </button>
+        </form>
 
         {/* Patient Selector Tabs */}
         {loadingList ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical-blue mx-auto mb-3"></div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold">Loading accessible patient list...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold">Loading patient list...</p>
           </div>
         ) : filteredPatients.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center space-y-3">
             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center mx-auto">
               <User size={24} />
             </div>
-            <h3 className="font-bold text-gray-800 dark:text-white text-base">No accessible patients found</h3>
+            <h3 className="font-bold text-gray-800 dark:text-white text-base">No registered patients match search query</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-              Scan a patient's QR code or run a face search in the Doctor Workspace to request access.
+              Enter a UPAHAAR ID in the box above or scan a patient's QR code in the Doctor Workspace.
             </p>
           </div>
         ) : (
@@ -272,7 +311,7 @@ export default function DoctorPatientsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-2xl font-extrabold text-gray-850 dark:text-white">{patient.full_name}</h2>
                     <span className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800/40 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Active Access Session
+                      <CheckCircle2 size={12} /> Verified Profile
                     </span>
                   </div>
 
@@ -503,7 +542,7 @@ export default function DoctorPatientsPage() {
                     </span>
                   </div>
 
-                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-800">
                     <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Neurological</span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {nervousDisorders.epilepsy ? 'Epilepsy ' : ''}
