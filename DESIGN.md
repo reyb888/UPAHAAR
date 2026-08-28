@@ -187,7 +187,6 @@ Shadows carry the accent hue (blue) — never pure black.
 - Light: `bg-medical-dark` (deep blue `#1E3A8A`), white text.
 - Dark: `#111b21`, `border-right: 1px #222e35`.
 - Nav item: `p-3 rounded-lg font-semibold`. Active = `bg-white/10 text-white`; hover = `bg-white/5`; idle = `text-gray-300`.
-- Collapsible group ("Advanced Tools"): chevron rotates; children indented with `border-l border-white/10`.
 - Notification count badge: `bg-red-500 text-white`, `text-xs`, pill, `animate-pulse`.
 - Bottom-pinned Settings item separated by `border-t border-white/10`.
 
@@ -203,7 +202,7 @@ Shadows carry the accent hue (blue) — never pure black.
 
 1. **Landing** (`landing.html`): sticky nav → hero (eyebrow + 44px title + pills CTAs) → "Why we built this" → "How it works" (3 steps) → "What's inside" (feature grid) → live health-card mock → "Security first" (deep-navy `--grad-dark` full-bleed section, white text) → "For doctors" → FAQ → footer.
 2. **Auth** (`/auth/citizen|doctor/{login,register,forgot-password}`): centered card, role-switch tabs, Google-translate widget.
-3. **Citizen dashboard**: sidebar + timeline cards, QR card, vital charts, pharmacy map finder, vaccine scheduler, notifications, settings.
+3. **Citizen dashboard**: sidebar + timeline cards, QR card, vital charts, vaccine scheduler, notifications, settings.
 4. **Doctor dashboard**: patient list → patient detail with full medical timeline.
 
 ## 11. Voice & content
