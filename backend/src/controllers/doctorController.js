@@ -415,10 +415,11 @@ export const getDoctorAccessedHistory = (req, res) => {
 export const getAccessiblePatients = (req, res) => {
     const doctorId = req.user.id;
 
-    db.all(`
+    // Fetch all access logs for this doctor first
+    const sqlLogs = `
         SELECT 
             u.id as citizen_user_id,
-            u.full_name,
+            COALESCE(NULLIF(u.full_name, ''), 'Patient ' || u.upahaar_id) as full_name,
             u.upahaar_id,
             u.email,
             u.phone,
@@ -426,22 +427,78 @@ export const getAccessiblePatients = (req, res) => {
             m.blood_group,
             m.dob,
             m.gender,
-            m.allergies
-        FROM users u
+            m.allergies,
+            a.id as access_log_id,
+            a.method,
+            a.status as access_status,
+            a.created_at as last_accessed_at,
+            a.logged_out_at
+        FROM access_logs a
+        JOIN users u ON a.citizen_id = u.id
         LEFT JOIN medical_profiles m ON u.id = m.user_id
-        WHERE u.role = 'CITIZEN'
-        ORDER BY u.full_name ASC
-    `, [], (err, patients) => {
+        WHERE a.doctor_id = ?
+        ORDER BY a.created_at DESC
+    `;
+
+    db.all(sqlLogs, [doctorId], (err, logRows) => {
         if (err) {
-            console.error('[ACCESSIBLE_PATIENTS] Error fetching patients:', err);
-            return res.status(500).json({ message: 'Error fetching patients', error: err.message });
+            console.error('[ACCESSIBLE_PATIENTS] Error fetching access logs:', err);
+            logRows = [];
         }
-        res.json({ patients: patients || [] });
+
+        // Deduplicate logs by citizen_user_id (getting most recent log per citizen)
+        const logMap = new Map();
+        (logRows || []).forEach(row => {
+            if (!logMap.has(row.citizen_user_id)) {
+                logMap.set(row.citizen_user_id, row);
+            }
+        });
+
+        // Also fetch all registered citizens as fallbacks if not in logs
+        db.all(`
+            SELECT 
+                u.id as citizen_user_id,
+                COALESCE(NULLIF(u.full_name, ''), 'Patient ' || u.upahaar_id) as full_name,
+                u.upahaar_id,
+                u.email,
+                u.phone,
+                u.face_photo_url,
+                m.blood_group,
+                m.dob,
+                m.gender,
+                m.allergies
+            FROM users u
+            LEFT JOIN medical_profiles m ON u.id = m.user_id
+            WHERE u.role = 'CITIZEN'
+            ORDER BY u.full_name ASC
+        `, [], (err, allCitizens) => {
+            if (err) {
+                allCitizens = [];
+            }
+
+            // Combine logMap citizens first, then remaining citizens with NO_ACCESS status
+            const finalPatients = Array.from(logMap.values());
+            const accessedIds = new Set(finalPatients.map(p => p.citizen_user_id));
+
+            (allCitizens || []).forEach(citizen => {
+                if (!accessedIds.has(citizen.citizen_user_id)) {
+                    finalPatients.push({
+                        ...citizen,
+                        access_status: 'NO_ACCESS',
+                        last_accessed_at: null,
+                        logged_out_at: null
+                    });
+                }
+            });
+
+            res.json({ patients: finalPatients });
+        });
     });
 };
 
 export const getPatientDetailsForDoctor = (req, res) => {
     const { upahaar_id } = req.params;
+    const doctorId = req.user.id;
 
     if (!upahaar_id) {
         return res.status(400).json({ message: 'UPAHAAR ID is required' });
@@ -450,7 +507,7 @@ export const getPatientDetailsForDoctor = (req, res) => {
     const targetId = upahaar_id.trim().toUpperCase();
 
     db.get(`
-        SELECT u.id AS citizen_user_id, u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
+        SELECT u.id AS citizen_user_id, COALESCE(NULLIF(u.full_name, ''), 'Patient ' || u.upahaar_id) as full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, m.* 
         FROM users u 
         LEFT JOIN medical_profiles m ON u.id = m.user_id 
         WHERE u.upahaar_id = ? AND u.role = 'CITIZEN'
@@ -461,21 +518,37 @@ export const getPatientDetailsForDoctor = (req, res) => {
 
         const citizenId = patient.citizen_user_id;
 
-        db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
-            db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
-                db.all(`
-                    SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
-                    FROM access_logs a
-                    JOIN users u ON a.doctor_id = u.id
-                    WHERE a.citizen_id = ?
-                    ORDER BY a.created_at DESC
-                `, [citizenId], (err, notifications) => {
-                    res.json({
-                        status: 'APPROVED',
-                        patient,
-                        timeline: prescriptions || [],
-                        vitals: vitals || [],
-                        notifications: notifications || []
+        // Verify doctor has active access log for this citizen
+        db.get(`
+            SELECT * FROM access_logs 
+            WHERE doctor_id = ? AND citizen_id = ? 
+            ORDER BY created_at DESC LIMIT 1
+        `, [doctorId, citizenId], (err, log) => {
+            if (log) {
+                const isRevoked = log.status === 'REVOKED' || log.status === 'LOGGED_OUT' || log.logged_out_at !== null;
+                if (isRevoked) {
+                    return res.status(403).json({ 
+                        message: 'Access to this patient profile has been revoked by the patient or emergency access session has ended.' 
+                    });
+                }
+            }
+
+            db.all(`SELECT * FROM prescriptions WHERE citizen_id = ? ORDER BY created_at DESC`, [citizenId], (err, prescriptions) => {
+                db.all(`SELECT * FROM vitals WHERE user_id = ? ORDER BY recorded_at ASC`, [citizenId], (err, vitals) => {
+                    db.all(`
+                        SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at, u.full_name as doctor_name, u.upahaar_id as doctor_upahaar_id
+                        FROM access_logs a
+                        JOIN users u ON a.doctor_id = u.id
+                        WHERE a.citizen_id = ?
+                        ORDER BY a.created_at DESC
+                    `, [citizenId], (err, notifications) => {
+                        res.json({
+                            status: 'APPROVED',
+                            patient,
+                            timeline: prescriptions || [],
+                            vitals: vitals || [],
+                            notifications: notifications || []
+                        });
                     });
                 });
             });
