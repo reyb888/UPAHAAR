@@ -171,7 +171,7 @@ export default function DoctorProfileSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
       <DoctorSidebar activePage="settings" />
 
       <main className="flex-1 p-6 lg:p-10 flex justify-center">
@@ -181,24 +181,24 @@ export default function DoctorProfileSetup() {
           <div className="flex items-center justify-between">
             <Link 
               href="/dashboard/doctor/settings" 
-              className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-medical-blue transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-150"
+              className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-medical-blue dark:hover:text-blue-400 transition-colors bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border border-gray-150 dark:border-slate-800"
             >
               <ArrowLeft size={18} /> Back to Settings
             </Link>
-            <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-medical-blue rounded-full border border-blue-100 flex items-center gap-1.5">
+            <span className="text-xs font-semibold px-3 py-1 bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-300 rounded-full border border-blue-100 dark:border-blue-900/50 flex items-center gap-1.5">
               <Shield size={14} /> Doctor Registry Profile
             </span>
           </div>
 
           <header>
             <h1 className="text-3xl font-extrabold text-gray-850 dark:text-white">Doctor Professional Profile</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage your medical qualifications, designation, and professional work history.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your medical qualifications, designation, and professional work history.</p>
           </header>
 
           {loading ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 text-center border border-gray-100 dark:border-slate-800 shadow-sm">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-medical-blue mx-auto mb-4"></div>
-              <p className="text-gray-500 font-semibold">Loading profile data...</p>
+              <p className="text-gray-500 dark:text-gray-400 font-semibold">Loading profile data...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -207,28 +207,28 @@ export default function DoctorProfileSetup() {
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm shadow-sm"
+                  className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 p-4 rounded-2xl flex items-center gap-3 font-semibold text-sm shadow-sm"
                 >
-                  <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+                  <CheckCircle2 size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   {successMsg}
                 </motion.div>
               )}
 
               {errorMsg && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-semibold">
+                <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/60 text-red-700 dark:text-red-300 p-4 rounded-2xl text-sm font-semibold">
                   {errorMsg}
                 </div>
               )}
 
               {/* Card 1: Face Photo & Identification */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                  <div className="p-2.5 bg-blue-50 text-medical-blue rounded-2xl">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                  <div className="p-2.5 bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 rounded-2xl">
                     <Camera size={22} />
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-850 dark:text-white text-lg">Profile & Face Scan Photo</h3>
-                    <p className="text-xs text-gray-500">Photo used for doctor profile card and portal identification</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Photo used for doctor profile card and portal identification</p>
                   </div>
                 </div>
 
@@ -247,14 +247,14 @@ export default function DoctorProfileSetup() {
                         className="w-24 h-24 rounded-full object-cover border-4 border-medical-blue/30 shadow-md"
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center font-bold text-3xl border border-gray-200">
+                      <div className="w-24 h-24 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-300 rounded-full flex items-center justify-center font-bold text-3xl border border-gray-200 dark:border-slate-700">
                         {fullName ? fullName.charAt(0).toUpperCase() : 'D'}
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 space-y-2 text-center sm:text-left">
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Upload New Profile Photo</label>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Upload New Profile Photo</label>
                     <input 
                       type="file" 
                       accept="image/*"
@@ -263,64 +263,64 @@ export default function DoctorProfileSetup() {
                           setFacePhoto(e.target.files[0]);
                         }
                       }}
-                      className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-medical-blue hover:file:bg-blue-100 cursor-pointer"
+                      className="block w-full text-xs text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 dark:file:bg-blue-950/60 file:text-medical-blue dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 cursor-pointer"
                     />
-                    <p className="text-[11px] text-gray-400">Supported formats: JPG, PNG, WEBP (Max 5MB)</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">Supported formats: JPG, PNG, WEBP (Max 5MB)</p>
                   </div>
                 </div>
               </div>
 
               {/* Card 2: Basic & Personal Info */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                  <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl">
                     <User size={22} />
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-850 dark:text-white text-lg">Personal Details</h3>
-                    <p className="text-xs text-gray-500">Your registered identification and account details</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Your registered identification and account details</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Full Name</label>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Full Name</label>
                     <input 
                       type="text"
                       required
                       placeholder="Dr. Jane Doe"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none text-sm focus:ring-2 focus:ring-medical-blue transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-850 dark:text-white outline-none text-sm focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">UPAHAAR Doctor ID</label>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">UPAHAAR Doctor ID</label>
                     <input 
                       type="text"
                       disabled
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 font-mono text-sm font-bold cursor-not-allowed"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 font-mono text-sm font-bold cursor-not-allowed"
                       value={upahaarId || 'Generating...'}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Email Address</label>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Email Address</label>
                     <input 
                       type="email"
                       disabled
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
                       value={email || ''}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Phone Number</label>
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Phone Number</label>
                     <input 
                       type="text"
                       disabled
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-100 text-gray-500 text-sm cursor-not-allowed"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
                       value={phone || ''}
                     />
                   </div>
@@ -328,39 +328,39 @@ export default function DoctorProfileSetup() {
               </div>
 
               {/* Card 3: Job Profile & Education */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 space-y-4">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl">
                     <Briefcase size={22} />
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-850 dark:text-white text-lg">Job Profile & Specialization</h3>
-                    <p className="text-xs text-gray-500">Your current role, department, and primary clinical specialization</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Your current role, department, and primary clinical specialization</p>
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <Briefcase size={14} className="text-medical-blue" /> Job Profile / Specialization Title
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Briefcase size={14} className="text-medical-blue dark:text-blue-400" /> Job Profile / Specialization Title
                     </label>
                     <input 
                       type="text"
                       placeholder="e.g. Senior Consultant Cardiologist, Chief Surgeon, General Physician"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none text-sm focus:ring-2 focus:ring-medical-blue transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-850 dark:text-white outline-none text-sm focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                       value={jobProfile}
                       onChange={e => setJobProfile(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                      <GraduationCap size={14} className="text-purple-600" /> Medical Education & Qualifications
+                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <GraduationCap size={14} className="text-purple-600 dark:text-purple-400" /> Medical Education & Qualifications
                     </label>
                     <textarea 
                       rows={3}
                       placeholder="e.g. MBBS - AIIMS New Delhi (2012), MD Cardiology - Harvard Medical School (2016)"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none text-sm focus:ring-2 focus:ring-medical-blue transition-all resize-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-gray-850 dark:text-white outline-none text-sm focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 transition-all resize-none placeholder-gray-400 dark:placeholder-gray-500"
                       value={education}
                       onChange={e => setEducation(e.target.value)}
                     />
@@ -369,22 +369,22 @@ export default function DoctorProfileSetup() {
               </div>
 
               {/* Card 4: Past Work Experiences */}
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800/80 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl">
+                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-2xl">
                       <Building size={22} />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-850 dark:text-white text-lg">Past Work Experiences</h3>
-                      <p className="text-xs text-gray-500">Add your previous clinical experience and hospital history</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Add your previous clinical experience and hospital history</p>
                     </div>
                   </div>
 
                   <button 
                     type="button" 
                     onClick={addWorkExperience}
-                    className="flex items-center gap-1.5 text-xs font-bold text-medical-blue bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-bold text-medical-blue dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-100 dark:border-blue-900/40 px-3.5 py-2 rounded-xl transition-colors"
                   >
                     <Plus size={16} /> Add Experience
                   </button>
@@ -396,17 +396,17 @@ export default function DoctorProfileSetup() {
                       key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-gray-50/70 p-4 rounded-2xl border border-gray-200 relative space-y-3"
+                      className="bg-gray-50/80 dark:bg-slate-800/70 p-4.5 rounded-2xl border border-gray-200 dark:border-slate-700/80 relative space-y-3 shadow-inner"
                     >
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider">
+                        <span className="text-xs font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Experience #{index + 1}
                         </span>
                         {workExperiences.length > 1 && (
                           <button 
                             type="button" 
                             onClick={() => removeWorkExperience(index)}
-                            className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                            className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
                             title="Remove Experience"
                           >
                             <Trash2 size={16} />
@@ -416,33 +416,33 @@ export default function DoctorProfileSetup() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="md:col-span-1 space-y-1">
-                          <label className="text-[11px] font-bold text-gray-600">Hospital / Medical Center</label>
+                          <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Hospital / Medical Center</label>
                           <input 
                             type="text"
                             placeholder="e.g. City General Hospital"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:ring-2 focus:ring-medical-blue"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-850 dark:text-white text-xs outline-none focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                             value={exp.hospital}
                             onChange={e => updateWorkExperience(index, 'hospital', e.target.value)}
                           />
                         </div>
 
                         <div className="md:col-span-1 space-y-1">
-                          <label className="text-[11px] font-bold text-gray-600">Designation / Role</label>
+                          <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Designation / Role</label>
                           <input 
                             type="text"
                             placeholder="e.g. Resident Cardiologist"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:ring-2 focus:ring-medical-blue"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-850 dark:text-white text-xs outline-none focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                             value={exp.role}
                             onChange={e => updateWorkExperience(index, 'role', e.target.value)}
                           />
                         </div>
 
                         <div className="md:col-span-1 space-y-1">
-                          <label className="text-[11px] font-bold text-gray-600">Duration / Years</label>
+                          <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Duration / Years</label>
                           <input 
                             type="text"
                             placeholder="e.g. 2018 - 2022 (4 yrs)"
-                            className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:ring-2 focus:ring-medical-blue"
+                            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-850 dark:text-white text-xs outline-none focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                             value={exp.duration}
                             onChange={e => updateWorkExperience(index, 'duration', e.target.value)}
                           />
@@ -450,11 +450,11 @@ export default function DoctorProfileSetup() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-gray-600">Description / Responsibilities (Optional)</label>
+                        <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Description / Responsibilities (Optional)</label>
                         <input 
                           type="text"
                           placeholder="e.g. Headed the outpatient cardiovascular unit and supervised CCU"
-                          className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:ring-2 focus:ring-medical-blue"
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-850 dark:text-white text-xs outline-none focus:ring-2 focus:ring-medical-blue dark:focus:ring-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
                           value={exp.description}
                           onChange={e => updateWorkExperience(index, 'description', e.target.value)}
                         />
