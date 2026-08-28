@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, User, Activity, Pill, Clock, ShieldCheck, 
   BrainCircuit, AlertTriangle, FileText, ChevronRight, 
-  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2, RefreshCw, Bell, Shield, X, ArrowLeft
+  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2, RefreshCw, Bell, Shield, X, Ban, Lock
 } from 'lucide-react';
 import DoctorSidebar from '../../../components/DoctorSidebar';
 import VitalChart from '../../../components/VitalChart';
@@ -98,10 +98,12 @@ export default function DoctorPatientsPage() {
         setSelectedPatientData(data);
       } else {
         const errData = await response.json();
-        alert(errData.message || "Could not fetch patient details");
+        alert(errData.message || "Access revoked or session expired for this patient.");
+        setShowProfileModal(false);
       }
     } catch (err) {
       console.error('Failed to fetch patient detail:', err);
+      setShowProfileModal(false);
     } finally {
       setLoadingDetail(false);
     }
@@ -152,9 +154,9 @@ export default function DoctorPatientsPage() {
   };
 
   const filteredPatients = patients.filter(p => 
-    p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.upahaar_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.full_name && p.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.upahaar_id && p.upahaar_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (p.email && p.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const patient = selectedPatientData?.patient;
@@ -183,7 +185,7 @@ export default function DoctorPatientsPage() {
               <Users size={24} className="text-medical-blue dark:text-blue-400" /> Patient Access Repository
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Inspect accessible patient cards, review shared health scopes, and view complete medical records.
+              Inspect accessible patient cards, review shared health scopes, and view active medical records.
             </p>
           </div>
 
@@ -254,13 +256,36 @@ export default function DoctorPatientsPage() {
                   ? 'Facial Recognition' 
                   : 'Manual Lookup';
 
+                const isRevokedOrExpired = p.access_status === 'REVOKED' || p.access_status === 'LOGGED_OUT' || p.logged_out_at !== null;
+                const isPending = p.access_status === 'PENDING';
+                const isActive = (p.access_status === 'APPROVED' || p.access_status === 'ACKNOWLEDGED' || p.access_status === 'QR_SCAN') && !p.logged_out_at;
+                const displayName = p.full_name || `Patient (${p.upahaar_id})`;
+
+                let cardBgClass = "bg-white border-gray-100 dark:bg-slate-900 dark:border-slate-800";
+                let statusBadgeClass = "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300";
+                let statusBadgeText = "No Active Access";
+
+                if (isActive) {
+                  cardBgClass = "bg-gradient-to-br from-emerald-50/40 to-white border-emerald-200 dark:from-emerald-950/30 dark:to-slate-900 dark:border-emerald-500/40 shadow-sm";
+                  statusBadgeClass = "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300";
+                  statusBadgeText = "Access Granted";
+                } else if (isRevokedOrExpired) {
+                  cardBgClass = "bg-gradient-to-br from-red-50/30 to-white border-red-200 dark:from-red-950/30 dark:to-slate-900 dark:border-red-500/30";
+                  statusBadgeClass = "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300";
+                  statusBadgeText = p.method === 'QR_SCAN' ? "Emergency Access Expired" : "Access Revoked";
+                } else if (isPending) {
+                  cardBgClass = "bg-gradient-to-br from-amber-50/30 to-white border-amber-200 dark:from-amber-950/30 dark:to-slate-900 dark:border-amber-500/30";
+                  statusBadgeClass = "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300";
+                  statusBadgeText = "Pending Approval";
+                }
+
                 return (
                   <motion.div
                     key={p.citizen_user_id}
                     layout
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border-gray-100 dark:bg-slate-900 dark:border-slate-800 hover:border-medical-blue/40 dark:hover:border-slate-700 p-6 rounded-3xl border shadow-sm flex flex-col justify-between transition-all duration-300 relative"
+                    className={`p-6 rounded-3xl border shadow-sm flex flex-col justify-between transition-all duration-300 relative ${cardBgClass}`}
                   >
                     <div>
                       {/* Top Patient Avatar & ID Block */}
@@ -269,25 +294,27 @@ export default function DoctorPatientsPage() {
                           {p.face_photo_url && p.face_photo_url !== 'dummy-url-for-now' ? (
                             <img 
                               src={getFileUrl(p.face_photo_url)} 
-                              alt={p.full_name} 
+                              alt={displayName} 
                               className="w-12 h-12 rounded-full object-cover border-2 border-medical-blue/20 shadow-sm shrink-0"
                             />
                           ) : (
                             <div className="w-12 h-12 bg-blue-50 dark:bg-slate-800 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-base shrink-0 border border-blue-100 dark:border-slate-700">
-                              {p.full_name ? p.full_name.charAt(0).toUpperCase() : 'Pt.'}
+                              {displayName.charAt(0).toUpperCase()}
                             </div>
                           )}
 
                           <div>
                             <h4 className="font-bold text-gray-800 dark:text-white text-base leading-snug">
-                              {p.full_name}
+                              {displayName}
                             </h4>
                             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">
                               UPAHAAR ID: <span className="font-semibold text-gray-700 dark:text-gray-300">{p.upahaar_id}</span>
                             </p>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
-                              <Eye size={13} className="text-gray-400" /> Requested via {methodLabel}
-                            </p>
+                            {p.method && (
+                              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                <Eye size={13} className="text-gray-400" /> Requested via {methodLabel}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -299,7 +326,7 @@ export default function DoctorPatientsPage() {
                             <Clock size={14} className="text-gray-400 dark:text-gray-500" /> Date requested
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200">
-                            {p.last_accessed_at ? new Date(p.last_accessed_at).toLocaleString() : 'Recent Consult'}
+                            {p.last_accessed_at ? new Date(p.last_accessed_at).toLocaleString() : 'Registered Citizen'}
                           </span>
                         </div>
 
@@ -316,8 +343,8 @@ export default function DoctorPatientsPage() {
                           <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                             <Shield size={14} className="text-gray-400 dark:text-gray-500" /> Status Badge
                           </span>
-                          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                            Access Granted
+                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${statusBadgeClass}`}>
+                            {statusBadgeText}
                           </span>
                         </div>
                       </div>
@@ -325,16 +352,47 @@ export default function DoctorPatientsPage() {
 
                     {/* Bottom Row */}
                     <div className="mt-2 flex justify-between items-center">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 size={13} /> Allowed
+                      <span className="text-xs font-semibold flex items-center gap-1">
+                        {isActive ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 size={14} /> Allowed
+                          </span>
+                        ) : isRevokedOrExpired ? (
+                          <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
+                            <Ban size={14} /> Access Revoked
+                          </span>
+                        ) : isPending ? (
+                          <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Clock size={14} /> Pending Approval
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                            <Lock size={14} /> No Active Access
+                          </span>
+                        )}
                       </span>
 
-                      <button
-                        onClick={() => handleOpenProfile(p.upahaar_id)}
-                        className="px-4 py-2 bg-medical-blue hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm text-xs cursor-pointer flex items-center gap-1.5"
-                      >
-                        View Medical Profile <ChevronRight size={14} />
-                      </button>
+                      {/* Primary Action Button: ONLY SHOWN FOR ACTIVE GRANTED ACCESS */}
+                      {isActive ? (
+                        <button
+                          onClick={() => handleOpenProfile(p.upahaar_id)}
+                          className="px-4 py-2 bg-medical-blue hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm text-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          View Medical Profile <ChevronRight size={14} />
+                        </button>
+                      ) : isRevokedOrExpired ? (
+                        <span className="px-3.5 py-1.5 bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 font-bold rounded-xl text-xs border border-red-200 dark:border-red-800/40">
+                          Access Revoked
+                        </span>
+                      ) : isPending ? (
+                        <span className="px-3.5 py-1.5 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-bold rounded-xl text-xs border border-amber-200 dark:border-amber-800/40">
+                          Awaiting Consent
+                        </span>
+                      ) : (
+                        <span className="px-3.5 py-1.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 font-bold rounded-xl text-xs border border-gray-200 dark:border-slate-700">
+                          Scan QR Code
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 );
