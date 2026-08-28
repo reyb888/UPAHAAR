@@ -1,0 +1,589 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, User, Activity, Pill, Clock, ShieldCheck, 
+  BrainCircuit, AlertTriangle, FileText, ChevronRight, 
+  Phone, Mail, Heart, Eye, Users, ChevronDown, CheckCircle2
+} from 'lucide-react';
+import DoctorSidebar from '../../../components/DoctorSidebar';
+import VitalChart from '../../../components/VitalChart';
+
+export default function DoctorPatientsPage() {
+  const [patients, setPatients] = useState<any[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientData, setSelectedPatientData] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingList, setLoadingList] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // AI Search state for selected patient
+  const [aiSearchQuery, setAiSearchQuery] = useState('');
+  const [aiSearchResult, setAiSearchResult] = useState<string | null>(null);
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+
+  // OCR raw view toggle
+  const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
+
+  const getFileUrl = (url?: string) => {
+    if (!url) return '#';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const parseJsonData = (data: any, fallback: any = {}) => {
+    if (!data) return fallback;
+    try {
+      return typeof data === 'string' ? JSON.parse(data) : data;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const parseAllergies = (allergiesData: any) => {
+    if (!allergiesData) return [];
+    try {
+      const parsed = typeof allergiesData === 'string' ? JSON.parse(allergiesData) : allergiesData;
+      const list = Object.keys(parsed).filter(k => k !== 'other' && parsed[k]);
+      if (parsed.other) list.push(parsed.other);
+      return list;
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchAccessiblePatients = async () => {
+    setLoadingList(true);
+    const token = localStorage.getItem('upahaar_token');
+    if (!token) return;
+    try {
+      const response = await fetch('/api/doctors/accessible-patients', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const list = data.patients || [];
+        setPatients(list);
+        if (list.length > 0 && !selectedPatientId) {
+          fetchPatientDetail(list[0].upahaar_id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch accessible patients:', err);
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  const fetchPatientDetail = async (upahaarId: string) => {
+    setSelectedPatientId(upahaarId);
+    setLoadingDetail(true);
+    setAiSearchResult(null);
+    setAiSearchQuery('');
+
+    const token = localStorage.getItem('upahaar_token');
+    try {
+      const response = await fetch(`/api/doctors/scan/${upahaarId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedPatientData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch patient detail:', err);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccessiblePatients();
+  }, []);
+
+  const handleAiSearch = async () => {
+    if (!aiSearchQuery.trim() || !selectedPatientId) return;
+    setAiSearchLoading(true);
+    setAiSearchResult(null);
+    try {
+      const token = localStorage.getItem('upahaar_token');
+      const response = await fetch(`/api/doctors/scan/${selectedPatientId}/ai-search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: aiSearchQuery })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setAiSearchResult(data.summary);
+      } else {
+        setAiSearchResult("Error: " + (data.message || "Failed to search history"));
+      }
+    } catch (err) {
+      setAiSearchResult("Failed to connect to AI processing server.");
+    } finally {
+      setAiSearchLoading(false);
+    }
+  };
+
+  const filteredPatients = patients.filter(p => 
+    p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.upahaar_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const patient = selectedPatientData?.patient;
+  const timeline = selectedPatientData?.timeline || [];
+  const vitals = selectedPatientData?.vitals || [];
+
+  const allergiesList = parseAllergies(patient?.allergies);
+  const emergencyContacts = parseJsonData(patient?.emergency_contacts, []);
+  const familyHistory = parseJsonData(patient?.family_history, []);
+  const hearingStatus = parseJsonData(patient?.hearing_status, {});
+  const mentalHealth = parseJsonData(patient?.mental_health, {});
+  const respiratoryDisorders = parseJsonData(patient?.respiratory_disorders, {});
+  const heartProblems = parseJsonData(patient?.heart_problems, {});
+  const nervousDisorders = parseJsonData(patient?.nervous_disorders, {});
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row transition-colors duration-300">
+      <DoctorSidebar activePage="patients" />
+
+      <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+        
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-850 dark:text-white flex items-center gap-3">
+              <Users className="text-medical-blue shrink-0" size={32} /> Accessible Patients
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Select any patient below to view their full medical profile, vital history, and AI diagnostic summaries.
+            </p>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3.5 top-3 text-gray-400 dark:text-gray-500" size={18} />
+            <input 
+              type="text"
+              placeholder="Search patients by name or ID..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-gray-850 dark:text-white outline-none focus:ring-2 focus:ring-medical-blue text-xs transition-all placeholder-gray-400 dark:placeholder-gray-500"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Patient Selector Tabs */}
+        {loadingList ? (
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical-blue mx-auto mb-3"></div>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold">Loading accessible patient list...</p>
+          </div>
+        ) : filteredPatients.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 text-center space-y-3">
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center mx-auto">
+              <User size={24} />
+            </div>
+            <h3 className="font-bold text-gray-800 dark:text-white text-base">No accessible patients found</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+              Scan a patient's QR code or run a face search in the Doctor Workspace to request access.
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+            {filteredPatients.map((p) => {
+              const isSelected = p.upahaar_id === selectedPatientId;
+              return (
+                <button
+                  key={p.citizen_user_id}
+                  onClick={() => fetchPatientDetail(p.upahaar_id)}
+                  className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl border transition-all text-left shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-medical-blue text-white border-medical-blue shadow-md shadow-blue-500/20'
+                      : 'bg-white dark:bg-slate-900 text-gray-800 dark:text-white border-gray-150 dark:border-slate-800 hover:border-medical-blue/50'
+                  }`}
+                >
+                  {p.face_photo_url && p.face_photo_url !== 'dummy-url-for-now' ? (
+                    <img 
+                      src={getFileUrl(p.face_photo_url)} 
+                      alt={p.full_name} 
+                      className="w-11 h-11 rounded-full object-cover border-2 border-white/30 shrink-0"
+                    />
+                  ) : (
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-base border shrink-0 ${
+                      isSelected ? 'bg-white/20 text-white border-white/30' : 'bg-blue-50 dark:bg-slate-800 text-medical-blue dark:text-blue-400 border-blue-100 dark:border-slate-700'
+                    }`}>
+                      {p.full_name ? p.full_name.charAt(0).toUpperCase() : 'P'}
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-bold text-sm leading-snug">{p.full_name}</h4>
+                    <p className={`text-[11px] font-mono ${isSelected ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                      {p.upahaar_id}
+                    </p>
+                  </div>
+
+                  {p.blood_group && (
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase ml-1 ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400'
+                    }`}>
+                      {p.blood_group}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Selected Patient Detail View */}
+        {loadingDetail ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-16 border border-gray-100 dark:border-slate-800 text-center shadow-sm">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-blue mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-300 font-semibold text-base">Retrieving complete patient history...</p>
+          </div>
+        ) : patient ? (
+          <div className="space-y-6">
+
+            {/* Patient Header Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+              <div className="flex items-center gap-5">
+                {patient.face_photo_url && patient.face_photo_url !== 'dummy-url-for-now' ? (
+                  <img 
+                    src={getFileUrl(patient.face_photo_url)} 
+                    alt={patient.full_name} 
+                    className="w-20 h-20 rounded-full object-cover border-4 border-medical-blue/30 shadow-md shrink-0"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-medical-blue/10 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 rounded-full flex items-center justify-center font-bold text-3xl border border-medical-blue/20 shrink-0">
+                    {patient.full_name ? patient.full_name.charAt(0).toUpperCase() : 'P'}
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-2xl font-extrabold text-gray-850 dark:text-white">{patient.full_name}</h2>
+                    <span className="bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800/40 flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Active Access Session
+                    </span>
+                  </div>
+
+                  <p className="text-xs font-mono font-bold text-gray-500 dark:text-gray-400">
+                    UPAHAAR ID: <span className="text-medical-blue dark:text-blue-400">{patient.upahaar_id}</span>
+                  </p>
+
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-1 flex-wrap">
+                    {patient.email && (
+                      <span className="flex items-center gap-1"><Mail size={14} className="text-gray-400" /> {patient.email}</span>
+                    )}
+                    {patient.phone && (
+                      <span className="flex items-center gap-1"><Phone size={14} className="text-gray-400" /> {patient.phone}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Health Stats Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                <div className="bg-red-50 dark:bg-red-950/50 border border-red-100 dark:border-red-900/40 p-3 rounded-2xl text-center">
+                  <span className="block text-[10px] font-extrabold text-red-600 dark:text-red-400 uppercase tracking-wider">Blood Group</span>
+                  <span className="text-lg font-bold text-red-700 dark:text-red-300">{patient.blood_group || 'N/A'}</span>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/40 p-3 rounded-2xl text-center">
+                  <span className="block text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Height</span>
+                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">{patient.height_cm ? `${patient.height_cm} cm` : 'N/A'}</span>
+                </div>
+
+                <div className="bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/40 p-3 rounded-2xl text-center">
+                  <span className="block text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Weight</span>
+                  <span className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{patient.weight_kg ? `${patient.weight_kg} kg` : 'N/A'}</span>
+                </div>
+
+                <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40 p-3 rounded-2xl text-center">
+                  <span className="block text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Records</span>
+                  <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{timeline.length}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Gemini AI Medical Assistant Box */}
+            <div className="bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900 p-6 lg:p-8 rounded-3xl text-white shadow-lg space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-purple-500/20 rounded-2xl backdrop-blur-md border border-purple-400/30">
+                  <BrainCircuit size={24} className="text-purple-300" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">AI Clinical Assistant</h3>
+                  <p className="text-xs text-purple-200">Query this patient's documented history using natural language</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  placeholder="e.g. Has this patient ever taken antibiotics or experienced asthma symptoms?"
+                  className="flex-1 px-4 py-3 rounded-2xl border border-purple-400/30 bg-white/10 text-white placeholder-purple-200/60 outline-none text-xs focus:ring-2 focus:ring-purple-400 backdrop-blur-md"
+                  value={aiSearchQuery}
+                  onChange={e => setAiSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                />
+                <button
+                  onClick={handleAiSearch}
+                  disabled={aiSearchLoading}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 rounded-2xl text-xs transition-colors shrink-0 disabled:opacity-50"
+                >
+                  {aiSearchLoading ? 'Analyzing...' : 'Search'}
+                </button>
+              </div>
+
+              {aiSearchResult && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl text-xs leading-relaxed text-purple-50 space-y-1"
+                >
+                  <span className="font-bold text-purple-200 block mb-1">AI Diagnostic Summary:</span>
+                  <div className="whitespace-pre-line">{aiSearchResult}</div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Prescriptions & Timeline */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-6">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800">
+                <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2">
+                  <FileText className="text-medical-blue" size={22} /> Prescriptions & Medical Timeline
+                </h3>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {timeline.length} Documented Records
+                </span>
+              </div>
+
+              {timeline.length === 0 ? (
+                <div className="text-center p-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-950 rounded-2xl border border-gray-100 dark:border-slate-800 text-sm">
+                  No medical prescriptions uploaded yet for this patient.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {timeline.map((record: any) => {
+                    const isRaw = viewModes[record.id] === 'raw';
+                    let medicines: any[] = [];
+                    try {
+                      medicines = typeof record.medicines === 'string' ? JSON.parse(record.medicines) : (record.medicines || []);
+                    } catch (e) {}
+
+                    return (
+                      <div key={record.id} className="bg-gray-50/70 dark:bg-slate-800/70 p-5 rounded-2xl border border-gray-200 dark:border-slate-700 space-y-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                              {new Date(record.created_at).toLocaleDateString()} at {new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {record.is_fraudulent === 1 && (
+                              <span className="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <AlertTriangle size={11} /> Flagged
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => setViewModes({ ...viewModes, [record.id]: isRaw ? 'summary' : 'raw' })}
+                            className="text-xs font-bold text-medical-blue dark:text-blue-400 hover:underline"
+                          >
+                            {isRaw ? 'Show AI Summary' : 'View OCR Text'}
+                          </button>
+                        </div>
+
+                        {isRaw ? (
+                          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-200 dark:border-slate-700 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {record.raw_ocr_text || 'No raw text available'}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold text-gray-800 dark:text-white leading-relaxed">
+                              {record.ai_extracted_data || 'Medical Record'}
+                            </p>
+
+                            {medicines.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prescribed Medications:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {medicines.map((med: any, mIdx: number) => (
+                                    <div key={mIdx} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs flex items-center gap-2 text-gray-800 dark:text-white">
+                                      <Pill size={14} className="text-medical-blue dark:text-blue-400" />
+                                      <span className="font-bold">{med.name}</span>
+                                      {med.frequency && <span className="text-gray-400">• {med.frequency}</span>}
+                                      {med.duration && <span className="text-gray-400">• {med.duration}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Vitals Charts Section */}
+            {vitals.length > 0 && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-xl font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                  <Activity className="text-emerald-500" size={22} /> Vital Tracker & Trends
+                </h3>
+                <VitalChart vitals={vitals} />
+              </div>
+            )}
+
+            {/* Grid 2 Columns: Allergies & Systemic Conditions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Allergies Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                  <AlertTriangle className="text-amber-500" size={20} /> Allergies & Sensitivities
+                </h3>
+
+                {allergiesList.length === 0 ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No known allergies reported by patient.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {allergiesList.map((alg: string, idx: number) => (
+                      <span key={idx} className="bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-xl text-xs font-bold capitalize flex items-center gap-1.5">
+                        ⚠️ {alg}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Systemic Conditions Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-lg font-bold text-gray-850 dark:text-white flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
+                  <Heart className="text-rose-500" size={20} /> Systemic Health Conditions
+                </h3>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Respiratory</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {respiratoryDisorders.asthma ? 'Asthma ' : ''}
+                      {respiratoryDisorders.copd ? 'COPD ' : ''}
+                      {respiratoryDisorders.other || (!respiratoryDisorders.asthma && !respiratoryDisorders.copd ? 'None' : '')}
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Cardiovascular</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {heartProblems.hypertension ? 'Hypertension ' : ''}
+                      {heartProblems.arrhythmia ? 'Arrhythmia ' : ''}
+                      {heartProblems.other || (!heartProblems.hypertension && !heartProblems.arrhythmia ? 'None' : '')}
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Mental Health</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {mentalHealth.anxiety ? 'Anxiety ' : ''}
+                      {mentalHealth.depression ? 'Depression ' : ''}
+                      {mentalHealth.other || (!mentalHealth.anxiety && !mentalHealth.depression ? 'None' : '')}
+                    </span>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-gray-100 dark:border-slate-700">
+                    <span className="font-bold text-gray-700 dark:text-gray-300 block mb-1">Neurological</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {nervousDisorders.epilepsy ? 'Epilepsy ' : ''}
+                      {nervousDisorders.other || (!nervousDisorders.epilepsy ? 'None' : '')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Grid 2 Columns: Family History & Emergency Contacts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* Family Disease History Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
+                  Family Disease History
+                </h3>
+
+                {familyHistory.length === 0 ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No family medical history recorded.</p>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-gray-150 dark:border-slate-800">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-150 dark:border-slate-700 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
+                          <th className="p-2.5">Relation</th>
+                          <th className="p-2.5">Condition</th>
+                          <th className="p-2.5">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                        {familyHistory.map((item: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/40">
+                            <td className="p-2.5 font-bold text-gray-800 dark:text-white">{item.relation || 'N/A'}</td>
+                            <td className="p-2.5 text-gray-600 dark:text-gray-300">{item.disease || 'N/A'}</td>
+                            <td className="p-2.5 text-gray-400 dark:text-gray-500">{item.notes || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Emergency Contacts Card */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 space-y-4">
+                <h3 className="text-lg font-bold text-gray-850 dark:text-white border-b border-gray-100 dark:border-slate-800 pb-3">
+                  Emergency Contacts
+                </h3>
+
+                {emergencyContacts.length === 0 ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">No emergency contacts listed.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {emergencyContacts.map((contact: any, idx: number) => (
+                      <div key={idx} className="bg-gray-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-xs text-gray-850 dark:text-white">{contact.name || 'Contact'}</h4>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">{contact.relation || 'Emergency Contact'}</p>
+                        </div>
+                        <a 
+                          href={`tel:${contact.phone}`} 
+                          className="bg-blue-50 dark:bg-blue-950/60 text-medical-blue dark:text-blue-400 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-colors"
+                        >
+                          <Phone size={13} /> {contact.phone}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        ) : null}
+
+      </main>
+    </div>
+  );
+}
