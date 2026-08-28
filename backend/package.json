@@ -22,7 +22,6 @@
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "sqlite3": "^5.1.6",
-    "tesseract.js": "^7.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
