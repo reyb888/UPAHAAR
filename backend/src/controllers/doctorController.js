@@ -411,3 +411,36 @@ export const getDoctorAccessedHistory = (req, res) => {
         res.json({ history: logs || [] });
     });
 };
+
+export const getAccessiblePatients = (req, res) => {
+    const doctorId = req.user.id;
+    db.all(`
+        SELECT 
+            u.id as citizen_user_id,
+            u.full_name,
+            u.upahaar_id,
+            u.email,
+            u.phone,
+            u.face_photo_url,
+            m.blood_group,
+            m.dob,
+            m.gender,
+            m.allergies,
+            MAX(a.created_at) as last_accessed_at,
+            a.method,
+            a.status as access_status,
+            a.logged_out_at
+        FROM access_logs a
+        JOIN users u ON a.citizen_id = u.id
+        LEFT JOIN medical_profiles m ON u.id = m.user_id
+        WHERE a.doctor_id = ? AND a.status IN ('APPROVED', 'ACKNOWLEDGED', 'QR_SCAN')
+        GROUP BY u.id
+        ORDER BY last_accessed_at DESC
+    `, [doctorId], (err, patients) => {
+        if (err) {
+            console.error('[ACCESSIBLE_PATIENTS] Error fetching patients:', err);
+            return res.status(500).json({ message: 'Error fetching accessible patients' });
+        }
+        res.json({ patients: patients || [] });
+    });
+};
