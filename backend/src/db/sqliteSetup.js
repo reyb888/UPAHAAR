@@ -158,6 +158,15 @@ export const initializeDB = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
 
+    // Doctor Profiles Table
+    await runCreate(`CREATE TABLE IF NOT EXISTS doctor_profiles (
+        user_id TEXT PRIMARY KEY,
+        job_profile TEXT,
+        education TEXT,
+        work_experience TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
+
     // Prescriptions Table
     await runCreate(`CREATE TABLE IF NOT EXISTS prescriptions (
         id TEXT PRIMARY KEY,
