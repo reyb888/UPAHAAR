@@ -344,3 +344,70 @@ export const closeAccess = (req, res) => {
         res.json({ message: 'Access session closed successfully' });
     });
 };
+
+export const getDoctorProfile = (req, res) => {
+    const doctorId = req.user.id;
+    db.get(`
+        SELECT u.full_name, u.email, u.phone, u.upahaar_id, u.face_photo_url, d.job_profile, d.education, d.work_experience
+        FROM users u
+        LEFT JOIN doctor_profiles d ON u.id = d.user_id
+        WHERE u.id = ? AND u.role = 'DOCTOR'
+    `, [doctorId], (err, profile) => {
+        if (err || !profile) {
+            return res.status(404).json({ message: 'Doctor profile not found' });
+        }
+        res.json(profile);
+    });
+};
+
+export const updateDoctorProfile = (req, res) => {
+    const doctorId = req.user.id;
+    const { full_name, face_photo_url, job_profile, education, work_experience } = req.body;
+
+    if (full_name) {
+        db.run(`UPDATE users SET full_name = ? WHERE id = ?`, [full_name, doctorId], (err) => {
+            if (err) console.error("Error updating doctor name:", err.message);
+        });
+    }
+
+    if (face_photo_url) {
+        db.run(`UPDATE users SET face_photo_url = ? WHERE id = ?`, [face_photo_url, doctorId], (err) => {
+            if (err) console.error("Error updating doctor photo:", err.message);
+        });
+    }
+
+    const workExpStr = typeof work_experience === 'string' ? work_experience : JSON.stringify(work_experience || []);
+
+    db.run(`
+        INSERT INTO doctor_profiles (user_id, job_profile, education, work_experience)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (user_id) DO UPDATE SET
+            job_profile = COALESCE(EXCLUDED.job_profile, doctor_profiles.job_profile),
+            education = COALESCE(EXCLUDED.education, doctor_profiles.education),
+            work_experience = COALESCE(EXCLUDED.work_experience, doctor_profiles.work_experience)
+    `, [doctorId, job_profile || null, education || null, workExpStr], function(err) {
+        if (err) {
+            console.error("Error updating doctor profile:", err);
+            return res.status(500).json({ message: 'Error updating profile', error: err.message });
+        }
+        res.json({ message: 'Profile updated successfully' });
+    });
+};
+
+export const getDoctorAccessedHistory = (req, res) => {
+    const doctorId = req.user.id;
+    db.all(`
+        SELECT a.id, a.method, a.status, a.created_at, a.logged_out_at,
+               u.full_name as patient_name, u.upahaar_id as patient_upahaar_id, u.face_photo_url as patient_face_photo
+        FROM access_logs a
+        JOIN users u ON a.citizen_id = u.id
+        WHERE a.doctor_id = ?
+        ORDER BY a.created_at DESC
+    `, [doctorId], (err, logs) => {
+        if (err) {
+            console.error('[DOCTOR_ACCESSED_HISTORY] Error fetching history:', err);
+            return res.status(500).json({ message: 'Error fetching accessed history' });
+        }
+        res.json({ history: logs || [] });
+    });
+};
