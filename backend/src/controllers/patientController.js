@@ -1,7 +1,6 @@
 import { db } from '../db/sqliteSetup.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateGeminiContent } from '../utils/gemini.js';
-import Tesseract from 'tesseract.js';
 import { parsePrescriptionText } from '../utils/ocrParser.js';
 import fs from 'fs';
 import path from 'path';
@@ -106,40 +105,52 @@ export const uploadPrescription = async (req, res) => {
     let medicinesJson = "[]";
     let rawOcrText = "";
 
-    // 1. Run local Tesseract OCR on images for free, offline text recognition
+    // 1. Call the Python FastAPI EasyOCR service for high-accuracy text recognition
+    const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
     try {
         if (mimeType.startsWith('image/')) {
-            console.log("Running local Tesseract OCR...");
-            const ocrResult = await Tesseract.recognize(req.file.buffer, 'eng');
-            rawOcrText = ocrResult.data.text || "";
-            console.log("Local OCR completed successfully.");
+            console.log("Calling EasyOCR AI service...");
+
+            // Build multipart/form-data with the raw file buffer
+            const formData = new FormData();
+            const blob = new Blob([req.file.buffer], { type: mimeType });
+            formData.append("file", blob, req.file.originalname);
+
+            const ocrResponse = await fetch(`${AI_SERVICE_URL}/extract-prescription`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (ocrResponse.ok) {
+                const ocrResult = await ocrResponse.json();
+                if (ocrResult.status === "success" && ocrResult.data) {
+                    aiSummary = ocrResult.data.summary || aiSummary;
+                    medicinesJson = JSON.stringify(ocrResult.data.medicines || []);
+                    rawOcrText = ocrResult.data.raw_text || "";
+                    console.log("EasyOCR extraction completed successfully.");
+                }
+            } else {
+                console.error("EasyOCR service returned error:", ocrResponse.status);
+                throw new Error(`EasyOCR service returned ${ocrResponse.status}`);
+            }
         } else if (mimeType === 'application/pdf') {
-            rawOcrText = "PDF format uploaded. Local OCR on PDF files is not supported.";
+            rawOcrText = "PDF format uploaded. OCR on PDF files requires Gemini Vision.";
         }
     } catch (ocrError) {
-        console.error("Local Tesseract OCR failed:", ocrError);
-        rawOcrText = "Failed to run local OCR: " + ocrError.message;
+        console.warn("EasyOCR AI service unavailable, falling back to local heuristic parser:", ocrError.message);
+        // Fallback: use local heuristic parser (still works if AI service is down)
+        aiSummary = "Prescription uploaded (AI service unavailable for OCR).";
     }
 
-    // 2. Perform local heuristic parsing as default fallback (works offline / keyless)
-    try {
-        const parsed = parsePrescriptionText(rawOcrText);
-        aiSummary = parsed.summary;
-        medicinesJson = JSON.stringify(parsed.medicines);
-    } catch (parseError) {
-        console.error("Local heuristic parsing failed:", parseError);
-        aiSummary = "Local text extraction succeeded, but formatting failed.";
-    }
-
-    // 3. Optional: Use Gemini to improve structuring if API key is configured (text-only prompts)
+    // 2. Optional: Use Gemini to improve structuring if API key is configured
     if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
         try {
-            console.log("Structuring extraction with Gemini...");
+            console.log("Enhancing extraction with Gemini...");
             let prompt = "";
             let apiInputs = [];
 
             if (mimeType === 'application/pdf') {
-                // PDF fallback: send entire PDF to Gemini Vision
+                // PDF: send entire PDF to Gemini Vision
                 prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
 You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
 1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
@@ -153,8 +164,8 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     }
                 };
                 apiInputs = [prompt, filePart];
-            } else if (rawOcrText && rawOcrText.trim().length > 0) {
-                // Image: Pass local OCR text instead of image (faster and cheaper text-only prompt)
+            } else if (rawOcrText && rawOcrText.trim().length > 10) {
+                // Image: send the EasyOCR text for better structuring (text-only = fast + cheap)
                 prompt = `You are a medical AI assistant. Extract structured data from this prescription text:
 ---
 ${rawOcrText}
@@ -180,13 +191,13 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     if (parsed.raw_text) {
                         rawOcrText = parsed.raw_text;
                     }
-                    console.log("Gemini structured extraction completed.");
+                    console.log("Gemini structured enhancement completed.");
                 } catch (jsonErr) {
                     console.error("Failed to parse Gemini JSON:", jsonErr, "Response text was:", text);
                 }
             }
         } catch (geminiError) {
-            console.error("Gemini structured extraction failed:", geminiError);
+            console.error("Gemini enhancement failed (EasyOCR results preserved):", geminiError.message);
         }
     }
 
