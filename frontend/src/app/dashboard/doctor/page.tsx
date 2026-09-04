@@ -8,6 +8,7 @@ import Script from 'next/script';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import VitalChart from '../../components/VitalChart';
 import DoctorSidebar from '../../components/DoctorSidebar';
+import { getMedicationDurationInfo, getMedicationKey } from '../../utils/medicationUtils';
 
 export default function DoctorDashboard() {
   const [upahaarId, setUpahaarId] = useState('');
@@ -128,10 +129,13 @@ export default function DoctorDashboard() {
                     const meds = JSON.parse(t.medicines);
                     if (Array.isArray(meds)) {
                       meds.forEach((med: any) => {
-                        const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                        const medKey = getMedicationKey(med);
                         if (!uniqueMedKeys.has(medKey)) {
                           uniqueMedKeys.add(medKey);
-                          allMedicines.push(med);
+                          const durationInfo = getMedicationDurationInfo(t.created_at, med.duration);
+                          if (durationInfo.isActive) {
+                            allMedicines.push({ ...med, durationInfo });
+                          }
                         }
                       });
                     }
@@ -364,10 +368,13 @@ export default function DoctorDashboard() {
                 const meds = JSON.parse(t.medicines);
                 if (Array.isArray(meds)) {
                   meds.forEach((med: any) => {
-                    const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                    const medKey = getMedicationKey(med);
                     if (!uniqueMedKeys.has(medKey)) {
                       uniqueMedKeys.add(medKey);
-                      allMedicines.push(med);
+                      const durationInfo = getMedicationDurationInfo(t.created_at, med.duration);
+                      if (durationInfo.isActive) {
+                        allMedicines.push({ ...med, durationInfo });
+                      }
                     }
                   });
                 }
@@ -734,7 +741,10 @@ export default function DoctorDashboard() {
                            {activeMedicines.map((med, idx) => (
                               <div key={idx} className="bg-white/10 p-3 rounded-xl border border-white/20">
                                  <strong className="block text-lg">{med.name}</strong>
-                                 <span className="text-sm text-blue-100">{med.frequency} • {med.duration}</span>
+                                 <div className="flex flex-wrap items-center gap-2 mt-1">
+                                   <span className="text-sm text-blue-100">{med.frequency}</span>
+                                   <span className="text-xs bg-white/20 px-2 py-0.5 rounded text-white">{med.durationInfo?.statusText || med.duration}</span>
+                                 </div>
                               </div>
                            ))}
                         </div>

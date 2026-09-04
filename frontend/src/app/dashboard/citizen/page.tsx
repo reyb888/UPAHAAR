@@ -2,12 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, ShieldAlert, Ban, Activity, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Upload, Clock, FileText, Settings, QrCode, Pill, CheckCircle2, Trash2, 
+  ShieldAlert, Ban, Activity, X, ChevronLeft, ChevronRight, Check, Calendar, 
+  Sparkles, Sun, Moon, Sunrise, Sunset, AlertCircle 
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import GoogleTranslate from '../../components/GoogleTranslate';
 import CitizenSidebar from '../../components/CitizenSidebar';
+import { 
+  getDosesForFrequency, 
+  getMedicationDurationInfo, 
+  getTodayDateString, 
+  getMedicationKey,
+  DoseSchedule 
+} from '../../utils/medicationUtils';
 
 export default function CitizenDashboard() {
   const router = useRouter();
@@ -20,7 +31,8 @@ export default function CitizenDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeMedicines, setActiveMedicines] = useState<any[]>([]);
-  const [takenMeds, setTakenMeds] = useState<number[]>([]);
+  const [todayDate, setTodayDate] = useState<string>(getTodayDateString());
+  const [dailyTakenDoses, setDailyTakenDoses] = useState<Record<string, string[]>>({});
   const [viewModes, setViewModes] = useState<Record<string, 'summary' | 'raw'>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
   // Document Modal State
@@ -38,6 +50,61 @@ export default function CitizenDashboard() {
       return url;
     }
     return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const getStorageKey = (dateStr: string, patientId?: string) => {
+    return `upahaar_doses_${patientId || 'citizen'}_${dateStr}`;
+  };
+
+  const loadDailyDoses = (dateStr: string, patientId?: string) => {
+    try {
+      const key = getStorageKey(dateStr, patientId);
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        setDailyTakenDoses(JSON.parse(stored));
+      } else {
+        setDailyTakenDoses({});
+      }
+    } catch (e) {
+      console.error("Failed to load dose logs from localStorage:", e);
+      setDailyTakenDoses({});
+    }
+  };
+
+  const toggleDose = (medKey: string, doseId: string) => {
+    setDailyTakenDoses(prev => {
+      const currentDoses = prev[medKey] || [];
+      const updated = currentDoses.includes(doseId)
+        ? currentDoses.filter(id => id !== doseId)
+        : [...currentDoses, doseId];
+      
+      const nextState = { ...prev, [medKey]: updated };
+      try {
+        const key = getStorageKey(todayDate, profile?.id);
+        localStorage.setItem(key, JSON.stringify(nextState));
+      } catch (e) {
+        console.error("Failed to persist dose to localStorage:", e);
+      }
+      return nextState;
+    });
+  };
+
+  const toggleAllDoses = (medKey: string, doses: DoseSchedule[]) => {
+    setDailyTakenDoses(prev => {
+      const currentDoses = prev[medKey] || [];
+      const allDoseIds = doses.map(d => d.id);
+      const isAllTaken = allDoseIds.length > 0 && allDoseIds.every(id => currentDoses.includes(id));
+      
+      const updated = isAllTaken ? [] : allDoseIds;
+      const nextState = { ...prev, [medKey]: updated };
+      try {
+        const key = getStorageKey(todayDate, profile?.id);
+        localStorage.setItem(key, JSON.stringify(nextState));
+      } catch (e) {
+        console.error("Failed to persist dose to localStorage:", e);
+      }
+      return nextState;
+    });
   };
 
   const fetchProfile = async () => {
@@ -78,7 +145,7 @@ export default function CitizenDashboard() {
         const timelineData = data.timeline || [];
         setTimeline(timelineData);
 
-        // Combine medicines from all prescriptions
+        // Combine medicines from all prescriptions and filter only active (unexpired) courses
         const allMedicines: any[] = [];
         const uniqueMedKeys = new Set<string>();
         timelineData.forEach((t: any) => {
@@ -87,10 +154,21 @@ export default function CitizenDashboard() {
               const meds = JSON.parse(t.medicines);
               if (Array.isArray(meds)) {
                 meds.forEach((med: any) => {
-                  const medKey = `${med.name.trim().toLowerCase()}-${(med.frequency || '').trim().toLowerCase()}`;
+                  const medKey = getMedicationKey(med);
                   if (!uniqueMedKeys.has(medKey)) {
                     uniqueMedKeys.add(medKey);
-                    allMedicines.push({ ...med, prescriptionId: t.id });
+                    const durationInfo = getMedicationDurationInfo(t.created_at, med.duration);
+                    // Only display medicines whose duration hasn't expired
+                    if (durationInfo.isActive) {
+                      allMedicines.push({ 
+                        ...med, 
+                        medKey,
+                        prescriptionId: t.id,
+                        createdAt: t.created_at,
+                        durationInfo,
+                        doses: getDosesForFrequency(med.frequency)
+                      });
+                    }
                   }
                 });
               }
@@ -224,6 +302,23 @@ export default function CitizenDashboard() {
     };
     initData();
   }, []);
+
+  useEffect(() => {
+    loadDailyDoses(todayDate, profile?.id);
+  }, [profile?.id, todayDate]);
+
+  useEffect(() => {
+    // Check if the date has rolled over past midnight every 30 seconds
+    const interval = setInterval(() => {
+      const current = getTodayDateString();
+      if (current !== todayDate) {
+        setTodayDate(current);
+        loadDailyDoses(current, profile?.id);
+        fetchTimeline();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [todayDate, profile?.id]);
 
   useEffect(() => {
     if (timeline.length > 0) {
@@ -363,39 +458,162 @@ export default function CitizenDashboard() {
 
               {/* Active Medication Reminders */}
               {activeMedicines.length > 0 && (
-                <div className="bg-gradient-to-r from-medical-blue to-blue-600 rounded-3xl p-6 text-white shadow-xl">
-                  <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><Pill size={24} /> Active Medication Reminders</h2>
-                  <div className="space-y-3">
-                    {activeMedicines.map((med: any, idx: number) => (
-                      <div key={idx} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl flex items-center justify-between border border-white/20">
-                        <div>
-                          <h3 className={`font-bold text-lg ${takenMeds.includes(idx) ? 'line-through text-gray-300' : ''}`}>{med.name}</h3>
-                          <p className="text-blue-100 text-sm">{med.frequency} • {med.duration}</p>
+                <div className="bg-gradient-to-br from-medical-blue via-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl border border-blue-400/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-white/15">
+                    <div>
+                      <h2 className="text-xl font-bold flex items-center gap-2">
+                        <Pill size={24} className="text-white drop-shadow-sm" /> 
+                        Active Medication Schedule
+                      </h2>
+                      <p className="text-blue-100 text-xs mt-0.5">
+                        Track each daily dose • Automatically refreshed each day
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/20 text-xs font-semibold self-start sm:self-auto">
+                      <Calendar size={14} className="text-blue-200" />
+                      <span>{new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {activeMedicines.map((med: any, idx: number) => {
+                      const medKey = med.medKey || getMedicationKey(med);
+                      const doses: DoseSchedule[] = med.doses || getDosesForFrequency(med.frequency);
+                      const takenList: string[] = dailyTakenDoses[medKey] || [];
+                      const isAllTaken = doses.length > 0 && doses.every(d => takenList.includes(d.id));
+                      const durationInfo = med.durationInfo || getMedicationDurationInfo(med.createdAt, med.duration);
+
+                      const getPeriodIcon = (period?: string) => {
+                        switch (period) {
+                          case 'morning':
+                            return <Sun size={14} className="text-amber-300" />;
+                          case 'afternoon':
+                            return <Sunrise size={14} className="text-amber-200" />;
+                          case 'evening':
+                            return <Sunset size={14} className="text-orange-300" />;
+                          case 'night':
+                            return <Moon size={14} className="text-indigo-200" />;
+                          default:
+                            return <Clock size={14} className="text-blue-200" />;
+                        }
+                      };
+
+                      return (
+                        <div 
+                          key={medKey || idx} 
+                          className={`backdrop-blur-md p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${
+                            isAllTaken 
+                              ? 'bg-emerald-950/30 border-emerald-400/40 shadow-inner' 
+                              : 'bg-white/10 hover:bg-white/15 border-white/20 shadow-md'
+                          }`}
+                        >
+                          {/* Medicine Header Row */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className={`font-bold text-lg transition-all ${isAllTaken ? 'line-through text-blue-200' : 'text-white'}`}>
+                                  {med.name}
+                                </h3>
+                                {isAllTaken && (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 bg-emerald-500 text-white rounded-full shadow-sm animate-in zoom-in">
+                                    <CheckCircle2 size={12} /> Completed Today
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-lg text-blue-100 font-medium">
+                                  {med.frequency}
+                                </span>
+                                <span className="text-xs bg-indigo-500/30 border border-indigo-300/30 px-2.5 py-0.5 rounded-lg text-indigo-100 flex items-center gap-1">
+                                  <Clock size={12} /> {durationInfo.statusText}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              {doses.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleAllDoses(medKey, doses)}
+                                  className="text-xs text-blue-100 hover:text-white px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors font-medium"
+                                  title="Toggle all doses for today"
+                                >
+                                  {isAllTaken ? 'Reset All' : 'Take All'}
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => {
+                                  setMedicineToRemove(med);
+                                  setShowRemoveModal(true);
+                                }}
+                                className="p-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-200 hover:text-white rounded-lg transition-all"
+                                title="Remove Medication"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Dose Sub-buttons Grid */}
+                          <div className="mt-3.5">
+                            <div className="flex items-center justify-between text-xs text-blue-200 font-medium mb-2">
+                              <span>Scheduled Doses ({takenList.length}/{doses.length} taken today):</span>
+                              {doses.length > 0 && (
+                                <span className="text-blue-100 font-bold">
+                                  {Math.round((takenList.length / doses.length) * 100)}%
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                              {doses.map((dose) => {
+                                const isTaken = takenList.includes(dose.id);
+                                return (
+                                  <button
+                                    key={dose.id}
+                                    type="button"
+                                    onClick={() => toggleDose(medKey, dose.id)}
+                                    className={`flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 transform active:scale-95 ${
+                                      isTaken
+                                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-900/30 ring-2 ring-emerald-300/60'
+                                        : 'bg-white text-medical-blue hover:bg-blue-50 shadow-sm'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      {getPeriodIcon(dose.period)}
+                                      <span className="truncate">{dose.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0 text-xs font-semibold">
+                                      {isTaken ? (
+                                        <>
+                                          <CheckCircle2 size={16} className="text-white" />
+                                          <span>Taken</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="text-blue-600 font-medium">Take</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Mini progress line for this medication */}
+                            {doses.length > 1 && (
+                              <div className="w-full bg-white/15 h-1.5 rounded-full mt-3 overflow-hidden">
+                                <div 
+                                  className="bg-emerald-400 h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${(takenList.length / doses.length) * 100}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => setTakenMeds(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx])}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors ${
-                              takenMeds.includes(idx) 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-white text-medical-blue hover:bg-blue-50'
-                            }`}
-                          >
-                            <CheckCircle2 size={18} /> {takenMeds.includes(idx) ? 'Taken' : 'Take'}
-                          </button>
-                          <button 
-                            onClick={() => {
-                              setMedicineToRemove(med);
-                              setShowRemoveModal(true);
-                            }}
-                            className="p-2 bg-red-500/20 hover:bg-red-500/40 hover:scale-105 text-white rounded-lg transition-all"
-                            title="Remove Medication"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
