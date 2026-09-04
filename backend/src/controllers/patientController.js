@@ -202,91 +202,12 @@ export const uploadPrescription = async (req, res) => {
             rawOcrText = "PDF format uploaded.";
         }
     } catch (ocrError) {
-        console.warn("Local TrOCR execution unavailable or failed:", ocrError.message);
-        // Do not set error text in aiSummary if Gemini key is available to handle fallback!
-        aiSummary = "Prescription uploaded. Processing with Gemini Vision...";
+        console.error("TrOCR execution error:", ocrError.message);
+        aiSummary = "Prescription uploaded. TrOCR processing failed: " + ocrError.message;
     }
 
-    // 2. Gemini Vision fallback / structuring enhancement
-    if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
-        try {
-            console.log("Processing extraction with Gemini...");
-            let prompt = "";
-            let apiInputs = [];
-
-            if (mimeType === 'application/pdf') {
-                // PDF: send entire PDF to Gemini Vision
-                prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
-You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
-1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
-2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
-3. "raw_text": A complete, verbatim OCR transcription of ALL text on the prescription exactly as written. Preserve line breaks with \\n.`;
-                
-                const filePart = {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType
-                    }
-                };
-                apiInputs = [prompt, filePart];
-            } else if (trocrSuccess && rawOcrText && rawOcrText.trim().length > 10) {
-                // TrOCR succeeded: send extracted text to Gemini for structuring (fast + cheap)
-                prompt = `You are a medical AI assistant. Extract structured data from this prescription text:
----
-${rawOcrText}
----
-You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
-1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
-2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
-3. "raw_text": A cleaned up, verbatim transcription of the text. Preserve line breaks with \\n.`;
-                apiInputs = [prompt];
-            } else {
-                // TrOCR failed or was unavailable (e.g. Render server): send image directly to Gemini Vision!
-                console.log("Using Gemini Vision direct image OCR fallback...");
-                prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription image. 
-You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
-1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
-2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
-3. "raw_text": A complete, verbatim OCR transcription of ALL text visible on the prescription image. Preserve line breaks with \\n.`;
-                
-                const filePart = {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType
-                    }
-                };
-                apiInputs = [prompt, filePart];
-            }
-
-            if (apiInputs.length > 0) {
-                const result = await generateGeminiContent(apiInputs, { model: "gemini-2.5-flash" });
-                const response = await result.response;
-                let text = response.text().trim();
-                
-                if (text.startsWith('```json')) text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                if (text.startsWith('```')) text = text.replace(/```/g, '').trim();
-
-                try {
-                    const parsed = JSON.parse(text);
-                    aiSummary = parsed.summary || aiSummary;
-                    medicinesJson = JSON.stringify(parsed.medicines || JSON.parse(medicinesJson));
-                    if (parsed.raw_text) {
-                        rawOcrText = parsed.raw_text;
-                    }
-                    console.log("Gemini extraction completed successfully.");
-                } catch (jsonErr) {
-                    console.error("Failed to parse Gemini JSON:", jsonErr, "Response text was:", text);
-                }
-            }
-        } catch (geminiError) {
-            console.error("Gemini processing failed:", geminiError.message);
-            if (!trocrSuccess) {
-                aiSummary = "Prescription uploaded successfully. Automatic OCR parsing is currently unavailable.";
-            }
-        }
-    } else if (!trocrSuccess) {
-        aiSummary = "Prescription uploaded. Local Python OCR failed and GEMINI_API_KEY is not configured on server.";
-    }
+    // GEMINI FALLBACK DISABLED FOR TROCR TESTING
+    console.log("[PURE TROCR TEST] Gemini fallback & enhancement are completely disabled.");
 
     db.run(
         `INSERT INTO prescriptions (id, citizen_id, doctor_id, file_url, ai_extracted_data, medicines, raw_ocr_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
