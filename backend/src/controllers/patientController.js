@@ -297,9 +297,7 @@ export const uploadPrescription = async (req, res) => {
 //                aiSummary = "Prescription uploaded successfully. Automatic OCR parsing is currently unavailable.";
 //            }
 //        }
-//    } else if (!trocrSuccess) {
-        aiSummary = "Prescription uploaded. Local Python OCR failed and GEMINI_API_KEY is not configured on server.";
-    }
+}
 
     db.run(
         `INSERT INTO prescriptions (id, citizen_id, doctor_id, file_url, ai_extracted_data, medicines, raw_ocr_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
