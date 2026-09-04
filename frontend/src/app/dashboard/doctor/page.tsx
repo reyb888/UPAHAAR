@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import TwoFactorSetup from '../../components/TwoFactorSetup';
 import VitalChart from '../../components/VitalChart';
+import DoctorSidebar from '../../components/DoctorSidebar';
 import { getMedicationDurationInfo, getMedicationKey } from '../../utils/medicationUtils';
 
 export default function DoctorDashboard() {
@@ -469,15 +470,7 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <Script src="https://unpkg.com/html5-qrcode" strategy="lazyOnload" />
-      <aside className="w-full md:w-64 bg-medical-dark text-white p-6 flex flex-col min-h-[10vh] md:min-h-screen">
-        <h2 className="text-2xl font-bold mb-8">UPAHAAR</h2>
-        <nav className="flex-1 space-y-4">
-          <button onClick={handleClearPatient} className="flex items-center gap-3 bg-white/10 p-3 rounded-lg font-semibold w-full text-left"><Scan size={20} /> Scan Patient</button>
-        </nav>
-        <button onClick={async () => { await closeActiveSession(); localStorage.clear(); sessionStorage.clear(); window.location.href = '/auth/doctor/login'; }} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors mt-auto font-semibold">
-          <LogOut size={18} /> Logout
-        </button>
-      </aside>
+      <DoctorSidebar activePage="workspace" />
 
       <main className="flex-1 p-6 lg:p-10">
         <div className="max-w-6xl mx-auto space-y-8">

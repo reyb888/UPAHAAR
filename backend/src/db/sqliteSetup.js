@@ -158,6 +158,15 @@ export const initializeDB = async () => {
         FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
 
+    // Doctor Profiles Table
+    await runCreate(`CREATE TABLE IF NOT EXISTS doctor_profiles (
+        user_id TEXT PRIMARY KEY,
+        job_profile TEXT,
+        education TEXT,
+        work_experience TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
+
     // Prescriptions Table
     await runCreate(`CREATE TABLE IF NOT EXISTS prescriptions (
         id TEXT PRIMARY KEY,
@@ -239,6 +248,37 @@ export const initializeDB = async () => {
         used INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
+    )`);
+
+    // Doctor Appointments Table
+    await runCreate(`CREATE TABLE IF NOT EXISTS appointments (
+        id TEXT PRIMARY KEY,
+        doctor_id TEXT NOT NULL,
+        patient_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        duration_minutes INTEGER DEFAULT 30,
+        notes TEXT,
+        reminder_offset TEXT,
+        status TEXT DEFAULT 'Scheduled',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (doctor_id) REFERENCES users(id),
+        FOREIGN KEY (patient_id) REFERENCES users(id)
+    )`);
+
+    // Doctor Notifications Table
+    await runCreate(`CREATE TABLE IF NOT EXISTS doctor_notifications (
+        id TEXT PRIMARY KEY,
+        doctor_id TEXT NOT NULL,
+        appointment_id TEXT,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (doctor_id) REFERENCES users(id),
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id)
     )`);
 
     console.log('Database tables verified/created.');

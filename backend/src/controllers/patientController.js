@@ -1,6 +1,7 @@
 import { db } from '../db/sqliteSetup.js';
 import { v4 as uuidv4 } from 'uuid';
 import { generateGeminiContent } from '../utils/gemini.js';
+import { parsePrescriptionText } from '../utils/ocrParser.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -100,52 +101,127 @@ export const uploadPrescription = async (req, res) => {
     const fileUrl = `data:${mimeType};base64,${base64Image}`;
     
     const id = uuidv4();
-    let aiSummary = "AI Processing skipped (No API Key)";
-    let medicinesJson = null;
-    let rawOcrText = null;
+    let aiSummary = "Processing...";
+    let medicinesJson = "[]";
+    let rawOcrText = "";
 
+    // 1. Run TrOCR via HTTP microservice OR local Python script
+    let trocrSuccess = false;
     try {
-        if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
-            if (mimeType.startsWith('image/') || mimeType === 'application/pdf') {
-                const prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription. 
-You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
-1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
-2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
-3. "raw_text": A complete, verbatim OCR transcription of ALL text on the prescription exactly as written. Preserve line breaks with \\n.`;
-                
-                const filePart = {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType
-                    }
-                };
-                
-                const result = await generateGeminiContent([prompt, filePart], { model: "gemini-2.5-flash" });
-                const response = await result.response;
-                let text = response.text().trim();
-                
-                // Attempt to parse JSON safely (in case it added markdown block)
-                if (text.startsWith('```json')) text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                
+        if (mimeType.startsWith('image/')) {
+            console.log("Attempting TrOCR extraction...");
+
+            // Method A: If AI_SERVICE_URL is defined (FastAPI Python microservice)
+            if (process.env.AI_SERVICE_URL) {
                 try {
-                    const parsed = JSON.parse(text);
-                    aiSummary = parsed.summary || "Summary extracted but missing from JSON.";
-                    medicinesJson = JSON.stringify(parsed.medicines || []);
-                    rawOcrText = parsed.raw_text || text;
-                } catch (e) {
-                    // Fallback if AI fails to return JSON
-                    aiSummary = text;
-                    medicinesJson = "[]";
-                    rawOcrText = text;
+                    console.log(`Calling FastAPI TrOCR microservice at ${process.env.AI_SERVICE_URL}...`);
+                    const formData = new FormData();
+                    const blob = new Blob([req.file.buffer], { type: mimeType });
+                    formData.append('file', blob, req.file.originalname);
+
+                    const response = await fetch(`${process.env.AI_SERVICE_URL}/extract-prescription`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const resData = await response.json();
+                        if (resData.data) {
+                            aiSummary = resData.data.summary || aiSummary;
+                            medicinesJson = JSON.stringify(resData.data.medicines || []);
+                            rawOcrText = resData.data.raw_text || "";
+                            trocrSuccess = true;
+                            console.log("TrOCR HTTP microservice extraction succeeded.");
+                        }
+                    }
+                } catch (httpErr) {
+                    console.warn("FastAPI TrOCR microservice unavailable, trying local script:", httpErr.message);
                 }
-            } else {
-                aiSummary = "Document uploaded. (File type not supported by Gemini Vision)";
             }
+
+            // Method B: Local script execution via child_process
+            if (!trocrSuccess) {
+                const tmpDir = path.resolve('uploads');
+                if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+                const tmpFile = path.join(tmpDir, `ocr_tmp_${id}.${ext}`);
+                fs.writeFileSync(tmpFile, req.file.buffer);
+
+                const ocrScriptPath = path.resolve('..', 'ai-service', 'ocr_extract.py');
+                const { execFile } = await import('child_process');
+
+                const candidateCmds = Array.from(new Set([
+                    process.env.PYTHON_CMD,
+                    'python3',
+                    'python',
+                    'py'
+                ].filter(Boolean)));
+
+                const runOcrCommand = (cmd) => new Promise((resolve, reject) => {
+                    execFile(cmd, [ocrScriptPath, tmpFile], { 
+                        timeout: 90000,
+                        maxBuffer: 10 * 1024 * 1024,
+                        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+                    }, (error, stdout, stderr) => {
+                        if (stderr) console.log(`[TrOCR output (${cmd})]:`, stderr);
+                        if (error) {
+                            const errDetail = stderr ? stderr.trim() : error.message;
+                            return reject(new Error(`[${cmd}] ${errDetail}`));
+                        }
+                        try {
+                            const trimmed = stdout.trim();
+                            // If output has extra lines before JSON, find the last JSON object
+                            const jsonMatch = trimmed.match(/\{[\s\S]*\}$/);
+                            if (jsonMatch) {
+                                resolve(JSON.parse(jsonMatch[0]));
+                            } else {
+                                resolve(JSON.parse(trimmed));
+                            }
+                        } catch (e) {
+                            reject(new Error(`[${cmd}] Failed to parse stdout: ${stdout}`));
+                        }
+                    });
+                });
+
+                let ocrResult = null;
+                const errorLog = [];
+
+                for (const cmd of candidateCmds) {
+                    try {
+                        console.log(`Trying TrOCR execution using '${cmd}'...`);
+                        ocrResult = await runOcrCommand(cmd);
+                        if (ocrResult) break;
+                    } catch (err) {
+                        console.warn(`Command '${cmd}' failed:`, err.message);
+                        errorLog.push(err.message);
+                    }
+                }
+
+                try { fs.unlinkSync(tmpFile); } catch (_) {}
+
+                if (ocrResult && !ocrResult.error) {
+                    aiSummary = ocrResult.summary || aiSummary;
+                    medicinesJson = JSON.stringify(ocrResult.medicines || []);
+                    rawOcrText = ocrResult.raw_text || "";
+                    trocrSuccess = true;
+                    console.log("Local TrOCR script extraction completed successfully.");
+                } else if (ocrResult && ocrResult.error) {
+                    throw new Error("TrOCR error: " + ocrResult.error);
+                } else {
+                    // Surface non-ENOENT error if present, or all errors
+                    const meaningfulError = errorLog.find(e => !e.includes("ENOENT")) || errorLog.join(" | ");
+                    throw new Error(meaningfulError || "All Python execution candidates failed.");
+                }
+            }
+        } else if (mimeType === 'application/pdf') {
+            rawOcrText = "PDF format uploaded.";
         }
-    } catch (error) {
-        console.error("Gemini API Error:", error);
-        aiSummary = "AI Processing failed: " + error.message;
+    } catch (ocrError) {
+        console.error("TrOCR execution error:", ocrError.message);
+        aiSummary = "Prescription uploaded. TrOCR processing failed: " + ocrError.message;
     }
+
+    // GEMINI FALLBACK DISABLED FOR TROCR TESTING
+    console.log("[PURE TROCR TEST] Gemini fallback & enhancement are completely disabled.");
 
     db.run(
         `INSERT INTO prescriptions (id, citizen_id, doctor_id, file_url, ai_extracted_data, medicines, raw_ocr_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -225,50 +301,7 @@ export const removeMedicineFromPrescription = (req, res) => {
     });
 };
 
-export const getNearbyPharmacies = async (req, res) => {
-    const { lat, lng } = req.query;
-    if (!lat || !lng) {
-        return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
 
-    const apiKey = process.env.GEOAPIFY_API_KEY;
-    if (!apiKey) {
-        return res.status(500).json({ message: 'Geoapify API key is missing' });
-    }
-
-    try {
-        const params = new URLSearchParams({
-            categories: 'healthcare.pharmacy',
-            filter: `circle:${lng},${lat},5000`,
-            bias: `proximity:${lng},${lat}`,
-            limit: '20',
-            apiKey
-        });
-
-        const response = await fetch(`https://api.geoapify.com/v2/places?${params}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Geoapify API error:', response.status, data);
-            return res.status(500).json({ message: 'Failed to fetch pharmacies from Geoapify' });
-        }
-
-        const pharmacies = (data.features || []).map(f => ({
-            place_id: f.properties.place_id || '',
-            name: f.properties.name || 'Unknown Pharmacy',
-            vicinity: f.properties.formatted || f.properties.address_line1 || '',
-            phone: f.properties.contact?.phone || null,
-            opening_hours: f.properties.opening_hours || null,
-            distance: f.properties.distance != null ? Math.round(f.properties.distance) : null
-        }));
-
-        res.json({ pharmacies });
-
-    } catch (error) {
-        console.error('Error fetching pharmacies:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-};
 
 export const getNotifications = (req, res) => {
     const citizenId = req.user.id;

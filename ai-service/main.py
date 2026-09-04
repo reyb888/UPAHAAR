@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
 
-# Mock services
+# AI services (TrOCR for OCR, others still mocked)
 from services.august_ai_service import extract_prescription_data
 from services.chatgpt_service import generate_medical_summary
 from services.face_recognition_service import generate_embedding, compare_faces
@@ -21,13 +21,15 @@ class DrugConflictRequest(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "AI Microservices running"}
+    return {"status": "AI Microservices running (TrOCR enabled)"}
 
 @app.post("/extract-prescription")
 async def extract_prescription(file: UploadFile = File(...)):
-    """ Uses August AI (Mocked) to read prescription image/pdf and return JSON """
+    """ Uses TrOCR (handwritten model) to read prescription image and return structured JSON """
     content = await file.read()
-    extracted_data = extract_prescription_data(file.filename)
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+    extracted_data = extract_prescription_data(content, file.filename)
     return {"status": "success", "data": extracted_data}
 
 @app.post("/generate-summary")
