@@ -163,7 +163,7 @@ def run_ocr(image_path):
     try:
         processor = TrOCRProcessor.from_pretrained(model_name, use_fast=True)
         model = VisionEncoderDecoderModel.from_pretrained(model_name)
-    except Exception model_err:
+    except Exception as model_err:
         sys.stderr.write(f"[TrOCR] Failed to load {model_name}, falling back to trocr-base...\n")
         model_name = "microsoft/trocr-base-handwritten"
         processor = TrOCRProcessor.from_pretrained(model_name, use_fast=True)
