@@ -132,6 +132,7 @@ def ensure_dependencies():
         try:
             subprocess.check_call([
                 sys.executable, "-m", "pip", "install",
+                "--break-system-packages",
                 "Pillow", "numpy", "transformers", "sentencepiece",
                 "torch", "--extra-index-url", "https://download.pytorch.org/whl/cpu"
             ])
