@@ -168,7 +168,7 @@ export default function DoctorNotificationsPage() {
 
                     let cardStyle = "bg-white border-gray-100 dark:bg-slate-900 dark:border-slate-800";
                     let badgeStyle = "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300";
-                    let badgeText = notif.type;
+                    let badgeText: string = notif.type;
 
                     if (notif.type === 'REMINDER') {
                       cardStyle = "bg-gradient-to-br from-amber-50/50 to-white border-amber-200 dark:from-amber-950/40 dark:to-slate-900 dark:border-amber-500/30 shadow-sm";
