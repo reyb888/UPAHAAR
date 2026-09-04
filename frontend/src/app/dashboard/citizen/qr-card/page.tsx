@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Phone, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import QRCode from 'qrcode';
 import CitizenSidebar from '../../../components/CitizenSidebar';
 
 export default function CitizenQRCard() {
@@ -37,9 +36,21 @@ export default function CitizenQRCard() {
 
   useEffect(() => {
     if (!profile?.upahaar_id || qrDataUrl) return;
-    QRCode.toDataURL(profile.upahaar_id, { width: 600, margin: 2, errorCorrectionLevel: 'M' })
-      .then(setQrDataUrl)
-      .catch(() => setQrError(true));
+    try {
+      const dynamicImport = new Function('specifier', 'return import(specifier)');
+      dynamicImport('qrcode')
+        .then((QRCodeModule: any) => {
+          const qrcode = QRCodeModule.default || QRCodeModule;
+          return qrcode.toDataURL(profile.upahaar_id, { width: 600, margin: 2, errorCorrectionLevel: 'M' });
+        })
+        .then((url: string) => setQrDataUrl(url))
+        .catch((err: any) => {
+          console.error('QR generation error:', err);
+          setQrError(true);
+        });
+    } catch {
+      setQrError(true);
+    }
   }, [profile, qrDataUrl]);
 
   const getAllergiesString = () => {
