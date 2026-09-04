@@ -11,7 +11,7 @@ from PIL import Image, ImageEnhance
 import numpy as np
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-_model_name = "microsoft/trocr-large-handwritten"
+_model_name = os.environ.get("TROCR_MODEL", "microsoft/trocr-base-handwritten")
 processor = None
 model = None
 

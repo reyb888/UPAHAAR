@@ -106,22 +106,63 @@ def segment_text_lines(image):
     return crops
 
 
+def ensure_dependencies():
+    """Check and auto-install required dependencies if missing."""
+    import subprocess
+    missing = []
+    try:
+        import PIL
+    except ImportError:
+        missing.append("Pillow")
+    try:
+        import numpy
+    except ImportError:
+        missing.append("numpy")
+    try:
+        import torch
+    except ImportError:
+        missing.append("torch")
+    try:
+        import transformers
+    except ImportError:
+        missing.append("transformers")
+
+    if missing:
+        sys.stderr.write(f"[TrOCR] Missing Python dependencies: {missing}. Auto-installing...\n")
+        try:
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install",
+                "Pillow", "numpy", "transformers", "sentencepiece",
+                "torch", "--extra-index-url", "https://download.pytorch.org/whl/cpu"
+            ])
+            sys.stderr.write("[TrOCR] Dependencies installed successfully.\n")
+        except Exception as e:
+            sys.stderr.write(f"[TrOCR] Auto-install failed: {e}\n")
+
+
 def run_ocr(image_path):
     """
     Run TrOCR on the image for handwriting recognition.
-    Uses Microsoft's trocr-large-handwritten model for best accuracy.
-    Returns raw extracted text as a single string with newlines.
+    Uses Microsoft's trocr-base-handwritten model for balance of speed, low RAM, and accuracy.
     """
+    ensure_dependencies()
     from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
     # Load preprocessed image
     image = preprocess_image(image_path)
 
-    # Load TrOCR model (downloads on first run, ~1.2GB)
-    # trocr-large-handwritten is the best for handwriting accuracy
-    model_name = "microsoft/trocr-large-handwritten"
-    processor = TrOCRProcessor.from_pretrained(model_name, use_fast=False)
-    model = VisionEncoderDecoderModel.from_pretrained(model_name)
+    # Use trocr-base-handwritten by default (350MB model, fits easily in cloud server RAM)
+    model_name = os.environ.get("TROCR_MODEL", "microsoft/trocr-base-handwritten")
+    sys.stderr.write(f"[TrOCR] Loading model: {model_name}...\n")
+
+    try:
+        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=False)
+        model = VisionEncoderDecoderModel.from_pretrained(model_name)
+    except Exception as model_err:
+        sys.stderr.write(f"[TrOCR] Failed to load {model_name}, trying trocr-small-handwritten fallback...\n")
+        model_name = "microsoft/trocr-small-handwritten"
+        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=False)
+        model = VisionEncoderDecoderModel.from_pretrained(model_name)
 
     # Segment image into text lines
     line_crops = segment_text_lines(image)
@@ -135,7 +176,7 @@ def run_ocr(image_path):
         generated_ids = model.generate(
             pixel_values,
             max_new_tokens=256,
-            num_beams=5,
+            num_beams=3,
             early_stopping=True
         )
 

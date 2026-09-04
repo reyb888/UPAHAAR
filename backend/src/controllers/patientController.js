@@ -105,62 +105,112 @@ export const uploadPrescription = async (req, res) => {
     let medicinesJson = "[]";
     let rawOcrText = "";
 
-    // 1. Run TrOCR via Python script directly (no separate server needed)
+    // 1. Run TrOCR via HTTP microservice OR local Python script
+    let trocrSuccess = false;
     try {
         if (mimeType.startsWith('image/')) {
-            console.log("Running TrOCR via Python script...");
+            console.log("Attempting TrOCR extraction...");
 
-            // Write buffer to a temp file for Python to read
-            const tmpDir = path.resolve('uploads');
-            if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-            const tmpFile = path.join(tmpDir, `ocr_tmp_${id}.${ext}`);
-            fs.writeFileSync(tmpFile, req.file.buffer);
+            // Method A: If AI_SERVICE_URL is defined (FastAPI Python microservice)
+            if (process.env.AI_SERVICE_URL) {
+                try {
+                    console.log(`Calling FastAPI TrOCR microservice at ${process.env.AI_SERVICE_URL}...`);
+                    const formData = new FormData();
+                    const blob = new Blob([req.file.buffer], { type: mimeType });
+                    formData.append('file', blob, req.file.originalname);
 
-            // Call standalone Python OCR script
-            const ocrScriptPath = path.resolve('..', 'ai-service', 'ocr_extract.py');
-            const { execFile } = await import('child_process');
+                    const response = await fetch(`${process.env.AI_SERVICE_URL}/extract-prescription`, {
+                        method: 'POST',
+                        body: formData
+                    });
 
-            const ocrResult = await new Promise((resolve, reject) => {
-                execFile('python', [ocrScriptPath, tmpFile], { 
-                    timeout: 60000,
-                    env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-                }, (error, stdout, stderr) => {
-                    // Clean up temp file
-                    try { fs.unlinkSync(tmpFile); } catch (_) {}
-
-                    if (error) {
-                        console.error("TrOCR script error:", stderr || error.message);
-                        return reject(error);
+                    if (response.ok) {
+                        const resData = await response.json();
+                        if (resData.data) {
+                            aiSummary = resData.data.summary || aiSummary;
+                            medicinesJson = JSON.stringify(resData.data.medicines || []);
+                            rawOcrText = resData.data.raw_text || "";
+                            trocrSuccess = true;
+                            console.log("TrOCR HTTP microservice extraction succeeded.");
+                        }
                     }
-                    try {
-                        resolve(JSON.parse(stdout.trim()));
-                    } catch (e) {
-                        console.error("Failed to parse TrOCR output:", stdout);
-                        reject(new Error("Invalid JSON from OCR script"));
-                    }
-                });
-            });
-
-            if (ocrResult.error) {
-                throw new Error(ocrResult.error);
+                } catch (httpErr) {
+                    console.warn("FastAPI TrOCR microservice unavailable, trying local script:", httpErr.message);
+                }
             }
 
-            aiSummary = ocrResult.summary || aiSummary;
-            medicinesJson = JSON.stringify(ocrResult.medicines || []);
-            rawOcrText = ocrResult.raw_text || "";
-            console.log("TrOCR extraction completed successfully.");
+            // Method B: Local script execution via child_process
+            if (!trocrSuccess) {
+                const tmpDir = path.resolve('uploads');
+                if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+                const tmpFile = path.join(tmpDir, `ocr_tmp_${id}.${ext}`);
+                fs.writeFileSync(tmpFile, req.file.buffer);
+
+                const ocrScriptPath = path.resolve('..', 'ai-service', 'ocr_extract.py');
+                const { execFile } = await import('child_process');
+
+                const candidateCmds = Array.from(new Set([
+                    process.env.PYTHON_CMD,
+                    'python3',
+                    'python',
+                    'py'
+                ].filter(Boolean)));
+
+                const runOcrCommand = (cmd) => new Promise((resolve, reject) => {
+                    execFile(cmd, [ocrScriptPath, tmpFile], { 
+                        timeout: 90000,
+                        maxBuffer: 10 * 1024 * 1024,
+                        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+                    }, (error, stdout, stderr) => {
+                        if (stderr) console.log(`[TrOCR output (${cmd})]:`, stderr);
+                        if (error) return reject(error);
+                        try {
+                            resolve(JSON.parse(stdout.trim()));
+                        } catch (e) {
+                            reject(new Error("Invalid JSON from OCR script: " + stdout));
+                        }
+                    });
+                });
+
+                let ocrResult = null;
+                let lastError = null;
+
+                for (const cmd of candidateCmds) {
+                    try {
+                        console.log(`Trying TrOCR execution using '${cmd}'...`);
+                        ocrResult = await runOcrCommand(cmd);
+                        if (ocrResult) break;
+                    } catch (err) {
+                        lastError = err;
+                        console.warn(`Command '${cmd}' failed:`, err.message);
+                    }
+                }
+
+                try { fs.unlinkSync(tmpFile); } catch (_) {}
+
+                if (ocrResult && !ocrResult.error) {
+                    aiSummary = ocrResult.summary || aiSummary;
+                    medicinesJson = JSON.stringify(ocrResult.medicines || []);
+                    rawOcrText = ocrResult.raw_text || "";
+                    trocrSuccess = true;
+                    console.log("Local TrOCR script extraction completed successfully.");
+                } else if (lastError) {
+                    throw lastError;
+                }
+            }
         } else if (mimeType === 'application/pdf') {
-            rawOcrText = "PDF format uploaded. OCR on PDF files requires Gemini Vision.";
+            rawOcrText = "PDF format uploaded.";
         }
     } catch (ocrError) {
-        console.error("TrOCR failed:", ocrError.message);
-        aiSummary = "Prescription uploaded. OCR processing failed: " + ocrError.message;
+        console.warn("Local TrOCR execution unavailable or failed:", ocrError.message);
+        // Do not set error text in aiSummary if Gemini key is available to handle fallback!
+        aiSummary = "Prescription uploaded. Processing with Gemini Vision...";
     }
 
-    // 2. Optional: Use Gemini to improve structuring if API key is configured
+    // 2. Gemini Vision fallback / structuring enhancement
     if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
         try {
-            console.log("Enhancing extraction with Gemini...");
+            console.log("Processing extraction with Gemini...");
             let prompt = "";
             let apiInputs = [];
 
@@ -179,8 +229,8 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     }
                 };
                 apiInputs = [prompt, filePart];
-            } else if (rawOcrText && rawOcrText.trim().length > 10) {
-                // Image: send the TrOCR text for better structuring (text-only = fast + cheap)
+            } else if (trocrSuccess && rawOcrText && rawOcrText.trim().length > 10) {
+                // TrOCR succeeded: send extracted text to Gemini for structuring (fast + cheap)
                 prompt = `You are a medical AI assistant. Extract structured data from this prescription text:
 ---
 ${rawOcrText}
@@ -190,6 +240,22 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
 2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
 3. "raw_text": A cleaned up, verbatim transcription of the text. Preserve line breaks with \\n.`;
                 apiInputs = [prompt];
+            } else {
+                // TrOCR failed or was unavailable (e.g. Render server): send image directly to Gemini Vision!
+                console.log("Using Gemini Vision direct image OCR fallback...");
+                prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription image. 
+You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
+1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
+2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
+3. "raw_text": A complete, verbatim OCR transcription of ALL text visible on the prescription image. Preserve line breaks with \\n.`;
+                
+                const filePart = {
+                    inlineData: {
+                        data: base64Image,
+                        mimeType
+                    }
+                };
+                apiInputs = [prompt, filePart];
             }
 
             if (apiInputs.length > 0) {
@@ -198,7 +264,8 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                 let text = response.text().trim();
                 
                 if (text.startsWith('```json')) text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                
+                if (text.startsWith('```')) text = text.replace(/```/g, '').trim();
+
                 try {
                     const parsed = JSON.parse(text);
                     aiSummary = parsed.summary || aiSummary;
@@ -206,14 +273,19 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
                     if (parsed.raw_text) {
                         rawOcrText = parsed.raw_text;
                     }
-                    console.log("Gemini structured enhancement completed.");
+                    console.log("Gemini extraction completed successfully.");
                 } catch (jsonErr) {
                     console.error("Failed to parse Gemini JSON:", jsonErr, "Response text was:", text);
                 }
             }
         } catch (geminiError) {
-            console.error("Gemini enhancement failed (TrOCR results preserved):", geminiError.message);
+            console.error("Gemini processing failed:", geminiError.message);
+            if (!trocrSuccess) {
+                aiSummary = "Prescription uploaded successfully. Automatic OCR parsing is currently unavailable.";
+            }
         }
+    } else if (!trocrSuccess) {
+        aiSummary = "Prescription uploaded. Local Python OCR failed and GEMINI_API_KEY is not configured on server.";
     }
 
     db.run(
