@@ -178,3 +178,27 @@ error: column "raw_ocr_text" of relation "prescriptions" already exists
     at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
 
+[2026-09-04T12:57:33.938Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN medicines TEXT
+Params: []
+Error: column "medicines" of relation "prescriptions" already exists
+error: column "medicines" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-09-04T12:57:34.405Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE prescriptions ADD COLUMN raw_ocr_text TEXT
+Params: []
+Error: column "raw_ocr_text" of relation "prescriptions" already exists
+error: column "raw_ocr_text" of relation "prescriptions" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+[2026-09-04T12:57:34.451Z] PostgreSQL RUN ERROR:
+SQL: ALTER TABLE medical_profiles ADD COLUMN emergency_contacts TEXT
+Params: []
+Error: column "emergency_contacts" of relation "medical_profiles" already exists
+error: column "emergency_contacts" of relation "medical_profiles" already exists
+    at D:\Computer Science\UPAHAAR\backend\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
