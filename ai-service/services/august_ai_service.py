@@ -1,20 +1,142 @@
-import easyocr
 import re
 import io
-from PIL import Image
+import os
+import warnings
+warnings.filterwarnings("ignore")
 
-# Initialize the EasyOCR reader once at module level (downloads model on first run, ~100MB)
-# Supports English + Hindi for Indian prescriptions
-reader = easyocr.Reader(['en'], gpu=False)
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from PIL import Image, ImageEnhance
+import numpy as np
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+
+_model_name = "microsoft/trocr-large-handwritten"
+processor = None
+model = None
+
+def get_ocr_model():
+    global processor, model
+    if processor is None or model is None:
+        print("[TrOCR] Loading model and processor...")
+        processor = TrOCRProcessor.from_pretrained(_model_name, use_fast=False)
+        model = VisionEncoderDecoderModel.from_pretrained(_model_name)
+    return processor, model
+
+
+def preprocess_image_bytes(image_bytes: bytes) -> Image.Image:
+    """
+    Enhance image quality for better OCR on handwritten prescriptions.
+    """
+    img = Image.open(io.BytesIO(image_bytes))
+
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+
+    # Auto-resize if image is too small
+    w, h = img.size
+    if max(w, h) < 1000:
+        scale = 1000 / max(w, h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # Enhance contrast (helps with faded handwriting)
+    img = ImageEnhance.Contrast(img).enhance(1.5)
+
+    # Sharpen (helps with blurry phone photos)
+    img = ImageEnhance.Sharpness(img).enhance(2.0)
+
+    return img
+
+
+def segment_text_lines(image: Image.Image) -> list:
+    """
+    Segment an image into individual text line crops using horizontal projection.
+    Returns a list of PIL Image crops, one per detected text line.
+    """
+    img_array = np.array(image.convert('L'))
+
+    # Binarize
+    threshold = img_array.mean()
+    binary = (img_array < threshold).astype(np.uint8)
+
+    # Horizontal projection
+    h_proj = binary.sum(axis=1)
+
+    min_ink = max(h_proj.max() * 0.02, 1)
+    in_line = False
+    lines = []
+    start = 0
+
+    for i, val in enumerate(h_proj):
+        if val > min_ink and not in_line:
+            start = i
+            in_line = True
+        elif val <= min_ink and in_line:
+            if i - start > 10:
+                lines.append((start, i))
+            in_line = False
+
+    if in_line and len(h_proj) - start > 10:
+        lines.append((start, len(h_proj)))
+
+    if not lines:
+        return [image]
+
+    # Merge close lines
+    merged = [lines[0]]
+    for start, end in lines[1:]:
+        prev_start, prev_end = merged[-1]
+        if start - prev_end < 15:
+            merged[-1] = (prev_start, end)
+        else:
+            merged.append((start, end))
+
+    w = image.size[0]
+    crops = []
+    for start, end in merged:
+        pad = 8
+        top = max(0, start - pad)
+        bottom = min(image.size[1], end + pad)
+        crop = image.crop((0, top, w, bottom))
+        crops.append(crop)
+
+    return crops
 
 
 def extract_text_from_image(image_bytes: bytes) -> str:
     """
-    Uses EasyOCR (deep learning CRAFT + ResNet/LSTM) to extract text from an image.
+    Uses TrOCR (trocr-large-handwritten) to extract text from an image.
     Returns the full raw OCR text with line breaks preserved.
     """
-    results = reader.readtext(image_bytes, detail=0, paragraph=True)
-    return "\n".join(results)
+    try:
+        img = preprocess_image_bytes(image_bytes)
+    except Exception:
+        img = Image.open(io.BytesIO(image_bytes))
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+    # Segment into text lines
+    line_crops = segment_text_lines(img)
+
+    proc, mod = get_ocr_model()
+
+    recognized_lines = []
+    for crop in line_crops:
+        pixel_values = proc(images=crop, return_tensors="pt").pixel_values
+
+        generated_ids = mod.generate(
+            pixel_values,
+            max_new_tokens=256,
+            num_beams=5,
+            early_stopping=True
+        )
+
+        text = proc.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        text = text.strip()
+        if text:
+            recognized_lines.append(text)
+
+    return "\n".join(recognized_lines)
 
 
 def parse_prescription_fields(raw_text: str) -> dict:
@@ -43,7 +165,7 @@ def parse_prescription_fields(raw_text: str) -> dict:
     for line in lines:
         # Extract Doctor Name
         if not doctor_name:
-            doc_match = re.search(r'(?:Dr\.?|Doctor:?|Physician:?)\s*([A-Za-z\s\.\-]+)', line, re.IGNORECASE)
+            doc_match = re.search(r'(?:Dr\.?|Doctor:?|Physician:?)\s*([A-Za-z\s.\-]+)', line, re.IGNORECASE)
             if doc_match:
                 name = doc_match.group(1).strip()
                 if name.lower() not in ("name", "") and len(name) > 2:
@@ -123,10 +245,10 @@ def parse_prescription_fields(raw_text: str) -> dict:
 
 def extract_prescription_data(image_bytes: bytes, filename: str = "") -> dict:
     """
-    Full pipeline: EasyOCR text extraction → heuristic parsing → structured JSON.
+    Full pipeline: TrOCR handwriting extraction → heuristic parsing → structured JSON.
     """
-    print(f"[EasyOCR] Processing file: {filename} ({len(image_bytes)} bytes)")
+    print(f"[TrOCR] Processing file: {filename} ({len(image_bytes)} bytes)")
     raw_text = extract_text_from_image(image_bytes)
-    print(f"[EasyOCR] Extracted {len(raw_text)} characters of text")
+    print(f"[TrOCR] Extracted {len(raw_text)} characters of text")
     result = parse_prescription_fields(raw_text)
     return result

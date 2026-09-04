@@ -3,5 +3,9 @@ uvicorn
 pydantic
 python-multipart
 requests
-easyocr
+transformers
+torch
+torchvision
 Pillow
+sentencepiece
+tiktoken
