@@ -144,25 +144,29 @@ def ensure_dependencies():
 def run_ocr(image_path):
     """
     Run TrOCR on the image for handwriting recognition.
-    Uses Microsoft's trocr-base-handwritten model for balance of speed, low RAM, and accuracy.
+    Uses Microsoft's TrOCR (transformer-based OCR) for state-of-the-art handwriting recognition.
+    Optimized for low-RAM environments (Render free tier).
     """
     ensure_dependencies()
+    import gc
+    import torch
     from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
     # Load preprocessed image
     image = preprocess_image(image_path)
 
-    # Use trocr-base-handwritten by default (350MB model, fits easily in cloud server RAM)
-    model_name = os.environ.get("TROCR_MODEL", "microsoft/trocr-base-handwritten")
+    # Use trocr-small-handwritten for low-RAM environments (Render free tier)
+    # trocr-base-handwritten exceeds 512MB memory limit
+    model_name = os.environ.get("TROCR_MODEL", "microsoft/trocr-small-handwritten")
     sys.stderr.write(f"[TrOCR] Loading model: {model_name}...\n")
 
     try:
-        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=False)
+        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=True)
         model = VisionEncoderDecoderModel.from_pretrained(model_name)
-    except Exception as model_err:
-        sys.stderr.write(f"[TrOCR] Failed to load {model_name}, trying trocr-small-handwritten fallback...\n")
-        model_name = "microsoft/trocr-small-handwritten"
-        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=False)
+    except Exception model_err:
+        sys.stderr.write(f"[TrOCR] Failed to load {model_name}, falling back to trocr-base...\n")
+        model_name = "microsoft/trocr-base-handwritten"
+        processor = TrOCRProcessor.from_pretrained(model_name, use_fast=True)
         model = VisionEncoderDecoderModel.from_pretrained(model_name)
 
     # Segment image into text lines
@@ -173,18 +177,24 @@ def run_ocr(image_path):
         # Process each line through TrOCR
         pixel_values = processor(images=crop, return_tensors="pt").pixel_values
 
-        # Generate text with beam search for better accuracy
-        generated_ids = model.generate(
-            pixel_values,
-            max_new_tokens=256,
-            num_beams=3,
-            early_stopping=True
-        )
+        # Generate text with greedy search (num_beams=1) to minimize RAM usage
+        # Beam search (num_beams=3/5) keeps multiple hypotheses in memory
+        with torch.no_grad():
+            generated_ids = model.generate(
+                pixel_values,
+                max_new_tokens=256,
+                num_beams=1,
+                early_stopping=True
+            )
 
         text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         text = text.strip()
         if text:
             recognized_lines.append(text)
+
+    # Clean up memory
+    del processor, model
+    gc.collect()
 
     return "\n".join(recognized_lines)
 

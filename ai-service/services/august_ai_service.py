@@ -1,6 +1,7 @@
 import re
 import io
 import os
+import gc
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -9,6 +10,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from PIL import Image, ImageEnhance
 import numpy as np
+import torch
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 _model_name = os.environ.get("TROCR_MODEL", "microsoft/trocr-base-handwritten")
@@ -124,17 +126,23 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     for crop in line_crops:
         pixel_values = proc(images=crop, return_tensors="pt").pixel_values
 
-        generated_ids = mod.generate(
-            pixel_values,
-            max_new_tokens=256,
-            num_beams=5,
-            early_stopping=True
-        )
+        # Greedy search (num_beams=1) to minimize RAM usage
+        with torch.no_grad():
+            generated_ids = mod.generate(
+                pixel_values,
+                max_new_tokens=256,
+                num_beams=1,
+                early_stopping=True
+            )
 
         text = proc.batch_decode(generated_ids, skip_special_tokens=True)[0]
         text = text.strip()
         if text:
             recognized_lines.append(text)
+
+    # Clean up memory per request
+    del proc, mod
+    gc.collect()
 
     return "\n".join(recognized_lines)
 
