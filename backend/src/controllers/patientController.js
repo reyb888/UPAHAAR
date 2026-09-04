@@ -163,17 +163,27 @@ export const uploadPrescription = async (req, res) => {
                         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
                     }, (error, stdout, stderr) => {
                         if (stderr) console.log(`[TrOCR output (${cmd})]:`, stderr);
-                        if (error) return reject(error);
+                        if (error) {
+                            const errDetail = stderr ? stderr.trim() : error.message;
+                            return reject(new Error(`[${cmd}] ${errDetail}`));
+                        }
                         try {
-                            resolve(JSON.parse(stdout.trim()));
+                            const trimmed = stdout.trim();
+                            // If output has extra lines before JSON, find the last JSON object
+                            const jsonMatch = trimmed.match(/\{[\s\S]*\}$/);
+                            if (jsonMatch) {
+                                resolve(JSON.parse(jsonMatch[0]));
+                            } else {
+                                resolve(JSON.parse(trimmed));
+                            }
                         } catch (e) {
-                            reject(new Error("Invalid JSON from OCR script: " + stdout));
+                            reject(new Error(`[${cmd}] Failed to parse stdout: ${stdout}`));
                         }
                     });
                 });
 
                 let ocrResult = null;
-                let lastError = null;
+                const errorLog = [];
 
                 for (const cmd of candidateCmds) {
                     try {
@@ -181,8 +191,8 @@ export const uploadPrescription = async (req, res) => {
                         ocrResult = await runOcrCommand(cmd);
                         if (ocrResult) break;
                     } catch (err) {
-                        lastError = err;
                         console.warn(`Command '${cmd}' failed:`, err.message);
+                        errorLog.push(err.message);
                     }
                 }
 
@@ -194,8 +204,12 @@ export const uploadPrescription = async (req, res) => {
                     rawOcrText = ocrResult.raw_text || "";
                     trocrSuccess = true;
                     console.log("Local TrOCR script extraction completed successfully.");
-                } else if (lastError) {
-                    throw lastError;
+                } else if (ocrResult && ocrResult.error) {
+                    throw new Error("TrOCR error: " + ocrResult.error);
+                } else {
+                    // Surface non-ENOENT error if present, or all errors
+                    const meaningfulError = errorLog.find(e => !e.includes("ENOENT")) || errorLog.join(" | ");
+                    throw new Error(meaningfulError || "All Python execution candidates failed.");
                 }
             }
         } else if (mimeType === 'application/pdf') {
