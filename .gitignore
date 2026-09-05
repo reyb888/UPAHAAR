@@ -24,11 +24,7 @@ summary.md
 *.txt
 tech_stack.md
 accounts.txt
-backend/supabase_trigger.sql
-backend/src/controllers/authController.js
 Demonstration/Patient QR.png
-backend/src/controllers/authController.js
-backend/supabase_trigger.sql
 present.txt
 ppt ka kaam/upahaar-pitch-deck.pdf
 ppt ka kaam/upahaar-pitch-deck.pptx
