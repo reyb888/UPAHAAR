@@ -105,8 +105,50 @@ export const uploadPrescription = async (req, res) => {
     if (process.env.GEMINI_API_KEY || process.env.GEMINI_BACKUP_API_KEY) {
         try {
             console.log("Processing prescription extraction with Gemini Vision...");
-            const prompt = `You are an expert medical AI assistant specialized in analyzing prescriptions.
+            let prompt = "";
+            let apiInputs = [];
+
+            if (mimeType === 'application/pdf') {
+                prompt = `You are an expert medical AI assistant specialized in analyzing prescriptions.
 Extract the patient diagnosis, doctor's name, and all prescribed medicines from this prescription document/image.
+You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
+1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
+2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
+3. "raw_text": A complete, verbatim OCR transcription of ALL text on the prescription exactly as written. Preserve line breaks with \n.`;
+
+                apiInputs = [prompt, { inlineData: { data: base64Image, mimeType } }];
+            } else {
+                console.log("Using Gemini Vision direct image OCR fallback...");
+                prompt = `You are a medical AI assistant. Extract the patient diagnosis, doctor's name, and prescribed medicines from this prescription image.
+You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
+1. "summary": A short, professional text string summarizing the diagnosis and doctor name.
+2. "medicines": An array of objects, where each object has "name" (e.g. Paracetamol 500mg), "frequency" (e.g. Morning & Night), and "duration" (e.g. 5 Days).
+3. "raw_text": A complete, verbatim OCR transcription of ALL text visible on the prescription image. Preserve line breaks with \n.`;
+
+                apiInputs = [prompt, { inlineData: { data: base64Image, mimeType } }];
+            }
+
+            if (apiInputs.length > 0) {
+                const result = await generateGeminiContent(apiInputs, { model: "gemini-2.5-flash" });
+                const response = await result.response;
+                let text = response.text().trim();
+
+                if (text.startsWith('```json')) text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                if (text.startsWith('```')) text = text.replace(/```/g, '').trim();
+
+                try {
+                    const parsed = JSON.parse(text);
+                    aiSummary = parsed.summary || aiSummary;
+                    medicinesJson = JSON.stringify(parsed.medicines || JSON.parse(medicinesJson));
+                    if (parsed.raw_text) {
+                        rawOcrText = parsed.raw_text;
+                    }
+                    console.log("Gemini extraction completed successfully.");
+                } catch (jsonErr) {
+                    console.error("Failed to parse Gemini JSON:", jsonErr, "Response text was:", text);
+                }
+            }
+
 
 You MUST return your answer as a raw, valid JSON object (without markdown wrappers like \`\`\`json) with exactly three fields:
 1. "summary": A short, professional text string summarizing the diagnosis and doctor name (e.g., "Prescription from Dr. John Smith for Acute Bronchitis").
@@ -141,11 +183,14 @@ You MUST return your answer as a raw, valid JSON object (without markdown wrappe
             console.error("Gemini prescription processing failed:", geminiError.message || geminiError);
             aiSummary = "Prescription uploaded successfully. Automatic OCR parsing is currently unavailable.";
         }
+    } catch (geminiError) {
+        console.error("Gemini prescription processing failed:", geminiError.message || geminiError);
+        aiSummary = "Prescription uploaded successfully. Automatic OCR parsing is currently unavailable.";
+    }
     } else {
         console.warn("Gemini API key not configured for prescription OCR.");
         aiSummary = "Prescription uploaded successfully. AI processing requires API key configuration.";
     }
-
     db.run(
         `INSERT INTO prescriptions (id, citizen_id, doctor_id, file_url, ai_extracted_data, medicines, raw_ocr_text) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [id, citizenId, doctorId, fileUrl, aiSummary, medicinesJson, rawOcrText],
